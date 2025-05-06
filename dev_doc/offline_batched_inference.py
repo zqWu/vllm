@@ -4,6 +4,7 @@ import os
 from vllm import LLM, SamplingParams
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["VLLM_USE_V1"] = "0"
 
 prompts = [
     "Hello, my name is",
@@ -30,7 +31,7 @@ sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
 # 初始化vLLM offline batched inference实例，并加载指定模型
 # ===========================================================================
 # "/data/models/opt-125m" "facebook/opt-125m"
-llm = LLM(model="/data/models/opt-125m")
+llm = LLM(model="/data/models/opt-125m", gpu_memory_utilization=0.4)
 
 # ===========================================================================
 # 推理

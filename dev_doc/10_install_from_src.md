@@ -33,6 +33,14 @@ pytorch-cuda 和 cudatoolkit 会冲突，因为它们都提供了 libcudart.so�
 如果你用的是 pytorch-cuda=11.8（从 -c nvidia），它已经把所需的 CUDA runtime、cudnn 等都带好了。
 vLLM 也推荐这种方式，因为它更接近官方NVIDIA发布的库结构。
 
+## 追问 cudatoolkit与 pytorch-cuda 有何异同
+- cudatoolkit是 anaconda提供的cuda runtime+部分driver stub. 目的是通用cuda支持
+- pytorch-cuda是nvidia官方为pytorch提供的 cuda runtime + cuDNN + 依赖包合计.
+    - 大致相对于 cudatoolkit + cudnn + nccl 组合
+    - 不是通用的cuda工具包, 而是专门为pytorch定制的
+    - 这是一个 conda包, 也就是说不能用 pip安装
+
+
 
 # 问题4. 检查安装vllm环境
 ```python
