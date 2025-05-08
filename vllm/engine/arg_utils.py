@@ -1116,6 +1116,7 @@ class EngineArgs:
             envs.set_vllm_use_v1(use_v1)
 
         # Set default arguments for V0 or V1 Engine.
+        logger.info(f"use_v1={use_v1}")
         if use_v1:
             self._set_default_args_v1(usage_context)
         else:

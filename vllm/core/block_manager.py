@@ -67,6 +67,7 @@ class SelfAttnBlockSpaceManager(BlockSpaceManager):
         sliding_window: Optional[int] = None,
         enable_caching: bool = False,
     ) -> None:
+        print(f"[debug] SelfAttnBlockSpaceManager.__init__")
         self.block_size = block_size
         self.num_total_gpu_blocks = num_gpu_blocks
         self.num_total_cpu_blocks = num_cpu_blocks

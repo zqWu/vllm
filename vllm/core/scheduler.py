@@ -57,8 +57,11 @@ class SchedulingBudget:
     feature from the API when chunked prefill is enabled by default.
     """
 
+    # 本次调度中, 最多允许多少个token. 比如 prefill阶段, 请求1有10个prompt token, 请求2有15个, 那么总计25tokens
+    # 如果 token_budget=64, 请求3有40个prompt token, 10+15+40 > 64, 请求3就不能进此次调度
     token_budget: int
     max_num_seqs: int
+    # max_num_seqs 指最多调动多少个 SequenceGroup
     _request_ids_num_batched_tokens: Set[str] = field(default_factory=set)
     _request_ids_num_curr_seqs: Set[str] = field(default_factory=set)
     # Number of cached tokens in the batch.
@@ -432,6 +435,7 @@ class Scheduler:
         pipeline_parallel_size: int = 1,
         output_proc_callback: Optional[Callable] = None,
     ) -> None:
+        logger.info(f"[debug] Scheduler.__init__")
         self.scheduler_config = scheduler_config
         self.cache_config = cache_config
         # Note for LoRA scheduling: the current policy is extremely
@@ -1229,6 +1233,7 @@ class Scheduler:
             token_budget=self.scheduler_config.max_num_batched_tokens,
             max_num_seqs=self.scheduler_config.max_num_seqs,
         )
+        logger.info(f"[debug] {budget}")
         # Make sure we include num running seqs before scheduling prefill,
         # so that we don't schedule beyond max_num_seqs for prefill.
         for seq_group in self.running:
@@ -1244,6 +1249,7 @@ class Scheduler:
 
         # If any requests are swapped, prioritized swapped requests.
         if not self.swapped:
+            logger.info(f"[debug] no swap, 优先处理 prefill, 这样整体效率更高")
             prefills = self._schedule_prefills(budget,
                                                curr_loras,
                                                enable_chunking=False)
@@ -1493,6 +1499,7 @@ class Scheduler:
     def schedule(
             self
     ) -> Tuple[List[SequenceGroupMetadata], SchedulerOutputs, bool]:
+        logger.info(f"[debug] Scheduler.schedule")
         # Schedule sequence groups.
         # This function call changes the internal states of the scheduler
         # such as self.running, self.swapped, and self.waiting.

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-
+import logging
 from typing import Callable, List, Optional, Tuple
 
 from vllm.lora.request import LoRARequest
@@ -42,6 +42,7 @@ class StopChecker:
 
         # Check if the minimum number of tokens has been generated yet;
         # skip the stop string/token checks if not
+        print(f"[debug] StopChecker.maybe_stop_sequence ")
         if seq.get_output_len() < sampling_params.min_tokens:
             return
 

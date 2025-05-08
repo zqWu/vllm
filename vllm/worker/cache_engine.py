@@ -53,6 +53,7 @@ class CacheEngine:
             self.dtype = STR_DTYPE_TO_TORCH_DTYPE[cache_config.cache_dtype]
 
         # Get attention backend.
+        logger.info("[debug] get_attn_backend")
         self.attn_backend = get_attn_backend(self.head_size,
                                              model_config.dtype,
                                              cache_config.cache_dtype,

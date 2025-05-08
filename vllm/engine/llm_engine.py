@@ -110,6 +110,7 @@ class SchedulerContext:
                       scheduler_outputs: SchedulerOutputs, is_async: bool,
                       is_last_step: bool,
                       is_first_step_output: Optional[bool]):
+        logger.info(f"[debug] append_output")
         self.output_queue.append(
             OutputData(outputs=outputs,
                        seq_group_metadata_list=seq_group_metadata_list,
@@ -348,6 +349,7 @@ class LLMEngine:
                 self.vllm_config.scheduler_config.scheduler_cls)
         else:
             Scheduler = self.vllm_config.scheduler_config.scheduler_cls
+        logger.info(f"[debug] 初始化 scheduler, self.parallel_config.pipeline_parallel_size={self.parallel_config.pipeline_parallel_size}")
         self.scheduler = [
             Scheduler(
                 self.scheduler_config, self.cache_config, self.lora_config,
@@ -729,6 +731,7 @@ class LLMEngine:
             >>> # continue the request processing
             >>> ...
         """
+        logger.info(f"[debug] add_request")
         if inputs is not None:
             prompt = inputs
         assert prompt is not None and params is not None
@@ -949,6 +952,7 @@ class LLMEngine:
 
         for seq in seq_group.get_seqs():
             seq.status = SequenceStatus.FINISHED_STOPPED
+            logger.info(f"[debug] seq 状态改变 ==> {seq.status}")
 
         return
 
@@ -1234,6 +1238,7 @@ class LLMEngine:
         sequences. This is normally done inside output processor, but it is
         required if the worker is to perform async forward pass to next step.
         """
+        logger.info(f"[output] _advance_to_next_step")
         for seq_group_metadata, sequence_group_outputs, scheduled_seq_group in \
             zip(seq_group_metadata_list, output, scheduled_seq_groups):
             seq_group = scheduled_seq_group.seq_group
@@ -1321,6 +1326,7 @@ class LLMEngine:
             >>>     if not (engine.has_unfinished_requests() or example_inputs):
             >>>         break
         """
+        logger.info(f"[debug] step")
         if self.parallel_config.pipeline_parallel_size > 1:
             raise NotImplementedError(
                 "Pipeline parallelism is only supported through AsyncLLMEngine "

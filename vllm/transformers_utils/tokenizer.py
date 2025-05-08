@@ -156,6 +156,7 @@ def get_tokenizer(
     download_dir: Optional[str] = None,
     **kwargs,
 ) -> AnyTokenizer:
+    print(f"[debug] tokenizer.py::get_tokenizer")
     """Gets a tokenizer for the given model name via HuggingFace or ModelScope.
     """
     if VLLM_USE_MODELSCOPE:
@@ -218,6 +219,7 @@ def get_tokenizer(
                                                     **kwargs)
     else:
         try:
+            logger.info(f"[debug]: AutoTokenizer.from_pretrained")
             tokenizer = AutoTokenizer.from_pretrained(
                 tokenizer_name,
                 *args,

@@ -236,6 +236,7 @@ class Worker(LocalOrDistributedWorkerBase):
         """
         # Profile the memory usage of the model and get the maximum number of
         # cache blocks that can be allocated with the remaining free memory.
+        logger.info("[debug] determine_num_available_blocks 计算可用的 kv cache block")
         torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
 

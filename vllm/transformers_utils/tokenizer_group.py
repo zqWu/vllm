@@ -98,6 +98,7 @@ class TokenizerGroup:
 def init_tokenizer_from_configs(model_config: ModelConfig,
                                 scheduler_config: SchedulerConfig,
                                 lora_config: Optional[LoRAConfig]):
+    print(f"[debug] tokenizer_group.py::init_tokenizer_from_configs")
     return TokenizerGroup(
         tokenizer_id=model_config.tokenizer,
         enable_lora=bool(lora_config),

@@ -418,6 +418,7 @@ class Sequence:
         lora_request: Optional[LoRARequest] = None,
         prompt_adapter_request: Optional[PromptAdapterRequest] = None,
     ) -> None:
+        print(f"[debug] Sequence.__init__ seq_id={seq_id}")
         self.seq_id = seq_id
         self.inputs = inputs
         self.block_size = block_size
@@ -556,6 +557,7 @@ class Sequence:
 
     def append_token_id(self, token_id: int, logprobs: dict[int,
                                                             Logprob]) -> None:
+        print(f"[debug] Sequence.append_token_id={token_id}, seq_id={self.seq_id}")
         assert token_id in logprobs
         self.output_logprobs.append(logprobs)
         self.data.append_token_id(token_id, logprobs[token_id].logprob)
@@ -664,6 +666,7 @@ class SequenceGroup:
                  prompt_adapter_request: Optional[PromptAdapterRequest] = None,
                  priority: int = 0,
                  draft_size: int = 1) -> None:
+        print(f"[debug] SequenceGroup.__init__ request_id={request_id}")
         self.request_id = request_id
         self.seqs = seqs
         self.first_seq = seqs[0]

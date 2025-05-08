@@ -424,6 +424,7 @@ class LLM:
             considered legacy and may be deprecated in the future. You should
             instead pass them via the ``inputs`` parameter.
         """
+        logger.info(f"[debug] generate")
         runner_type = self.llm_engine.model_config.runner_type
         if runner_type not in ["generate", "transcription"]:
             messages = [

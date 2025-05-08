@@ -29,5 +29,16 @@ q @k.T 需要进行  N * N * d_model次 FMA.
 
 
 # flash attn
-- 瓶颈不在 算力, 而在于读写上
-- 着重降低对显存数据的访问次数
+https://www.youtube.com/watch?v=gBMO1JZav44
+
+
+
+## 核心问题
+- 显存占用过大 (q @ k.T, softmax @ v), 特别是长 seq时, 显存消耗很大
+- 瓶颈不在 算力, 而在于读写上.
+  - 着重降低对显存数据的访问次数
+## 核心思想
+- tiling & fused kernel
+- re-computation 策略: 只保存必要的中间值, 以节省内存, 有些在反向传播时 重新计算
+- fused kernel. 如把 matmul softmax dropout 合并成一个 kernel
+- log-sum-exp 避免 softmax 溢出
