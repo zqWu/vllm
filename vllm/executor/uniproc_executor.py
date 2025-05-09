@@ -51,6 +51,7 @@ class UniProcExecutor(ExecutorBase):
                        timeout: Optional[float] = None,
                        args: Tuple = (),
                        kwargs: Optional[Dict] = None) -> List[Any]:
+        logger.info(f"[debug] collective_rpc {str(method)}")
         if kwargs is None:
             kwargs = {}
         answer = run_method(self.driver_worker, method, args, kwargs)

@@ -444,6 +444,7 @@ class DefaultModelLoader(BaseModelLoader):
                               allow_patterns_overrides=None)
 
     def load_model(self, vllm_config: VllmConfig) -> nn.Module:
+        logger.info(f"[debug] DefaultModelLoader::load_model")
         device_config = vllm_config.device_config
         model_config = vllm_config.model_config
         target_device = torch.device(device_config.device)
@@ -1514,6 +1515,7 @@ class RunaiModelStreamerLoader(BaseModelLoader):
 
 
 def get_model_loader(load_config: LoadConfig) -> BaseModelLoader:
+    logger.info(f"[debug] get_model_loader, load_config.load_format={load_config.load_format}")
     """Get a model loader based on the load format."""
     if isinstance(load_config.load_format, type):
         return load_config.load_format(load_config)

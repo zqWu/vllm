@@ -159,6 +159,7 @@ class DelegateWorkerBase(WorkerBase):
 
     def load_model(self) -> None:
         """Load model onto target device."""
+        logger.info(f"[debug] load_model")
         self.worker.load_model()
 
     def get_model(self) -> nn.Module:
@@ -507,6 +508,7 @@ class WorkerWrapperBase:
         All workers have rpc_rank=0, but they have different ranks in the TP
         group.
         """
+        logger.info(f"[debug] WorkerWrapperBase.__init__")
         self.rpc_rank = rpc_rank
         self.worker: Optional[WorkerBase] = None
         # do not store this `vllm_config`, `init_worker` will set the final
@@ -545,6 +547,7 @@ class WorkerWrapperBase:
         Here we inject some common logic before initializing the worker.
         Arguments are passed to the worker class constructor.
         """
+        logger.info(f"[debug] init_worker")
         kwargs = all_kwargs[self.rpc_rank]
         self.vllm_config = kwargs.get("vllm_config", None)
         assert self.vllm_config is not None, (
@@ -595,10 +598,12 @@ class WorkerWrapperBase:
             assert self.worker is not None
 
     def initialize_from_config(self, kv_cache_configs: List[Any]) -> None:
+        logger.info(f"[debug] initialize_from_config")
         kv_cache_config = kv_cache_configs[self.rpc_rank]
         self.worker.initialize_from_config(kv_cache_config)  # type: ignore
 
     def init_device(self):
+        logger.info(f"[debug] init_device")
         with set_current_vllm_config(self.vllm_config):
             # To make vLLM config available during device initialization
             self.worker.init_device()  # type: ignore

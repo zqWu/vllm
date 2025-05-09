@@ -52,6 +52,7 @@ class Worker(LocalOrDistributedWorkerBase):
         is_driver_worker: bool = False,
         model_runner_cls: Optional[Type[GPUModelRunnerBase]] = None,
     ) -> None:
+        logger.info(f"Worker.__init__")
         WorkerBase.__init__(self, vllm_config)
         self.parallel_config.rank = rank
         self.local_rank = local_rank
@@ -160,6 +161,7 @@ class Worker(LocalOrDistributedWorkerBase):
             self._sleep_saved_buffers = {}
 
     def init_device(self) -> None:
+        logger.info(f"Worker.init_device")
         if self.device_config.device.type == "cuda":
             # torch.distributed.all_reduce does not free the input tensor until
             # the synchronization point. This causes the memory usage to grow
@@ -190,6 +192,7 @@ class Worker(LocalOrDistributedWorkerBase):
         set_random_seed(self.model_config.seed)
 
     def load_model(self):
+        logger.info(f"Worker.load_model")
         if self.vllm_config.model_config.enable_sleep_mode:
             allocator = CuMemAllocator.get_instance()
             assert allocator.get_current_usage() == 0, (
@@ -305,6 +308,7 @@ class Worker(LocalOrDistributedWorkerBase):
 
     def initialize_cache(self, num_gpu_blocks: int,
                          num_cpu_blocks: int) -> None:
+        logger.info(f"Worker.initialize_cache")
         """Allocate GPU and CPU KV cache with the specified number of blocks.
 
         This also warms up the model, which may record CUDA graphs.
@@ -329,6 +333,7 @@ class Worker(LocalOrDistributedWorkerBase):
         self._warm_up_model()
 
     def _init_cache_engine(self):
+        logger.info(f"Worker._init_cache_engine")
         assert self.cache_config.num_gpu_blocks is not None
         self.cache_engine = [
             CacheEngine(self.cache_config, self.model_config,
@@ -401,6 +406,7 @@ class Worker(LocalOrDistributedWorkerBase):
 
     @torch.inference_mode()
     def execute_worker(self, worker_input: WorkerInput) -> None:
+        logger.info(f"Worker.execute_worker")
         virtual_engine = worker_input.virtual_engine
         # Issue cache operations.
         if (worker_input.blocks_to_swap_in is not None

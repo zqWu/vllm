@@ -445,6 +445,7 @@ class LLMEngine:
         # distributed_executor_backend must be set in VllmConfig.__post_init__
         distributed_executor_backend = (
             engine_config.parallel_config.distributed_executor_backend)
+        logger.info(f"[debug] 确定 executor_cls = {distributed_executor_backend}")
         # Initialize the cluster and specify the executor class.
         if isinstance(distributed_executor_backend, type):
             if not issubclass(distributed_executor_backend, ExecutorBase):

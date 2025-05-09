@@ -15,6 +15,7 @@ plugins_loaded = False
 
 
 def load_plugins_by_group(group: str) -> Dict[str, Callable]:
+    logger.info(f"[debug] plugins/__init__.py::load_plugins_by_group {group}")
     import sys
     if sys.version_info < (3, 10):
         from importlib_metadata import entry_points
@@ -27,7 +28,7 @@ def load_plugins_by_group(group: str) -> Dict[str, Callable]:
     if len(discovered_plugins) == 0:
         logger.debug("No plugins for group %s found.", group)
         return {}
-    logger.info("Available plugins for group %s:", group)
+    logger.info("Available plugins fora group %s:", group)
     for plugin in discovered_plugins:
         logger.info("name=%s, value=%s", plugin.name, plugin.value)
     if allowed_plugins is None:
@@ -52,6 +53,7 @@ def load_general_plugins():
     processes. They should be designed in a way that they can be loaded
     multiple times without causing issues.
     """
+    logger.info(f"[debug] plugins/__init__.py::load_general_plugins")
     global plugins_loaded
     if plugins_loaded:
         return

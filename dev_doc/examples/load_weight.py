@@ -30,7 +30,6 @@ def parse_args(mock_cli_str):
 def main(args: argparse.Namespace):
     """Main function that sets up and runs the prompt processing."""
     engine = initialize_engine(args)
-    print("done")
 
 
 if __name__ == '__main__':
