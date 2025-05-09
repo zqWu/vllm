@@ -11,12 +11,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpu_id}"
 os.environ["VLLM_USE_V1"] = "0"
 
 
-def initialize_engine(args: argparse.Namespace) -> LLMEngine:
-    """Initialize the LLMEngine from the command line arguments."""
-    engine_args = EngineArgs.from_cli_args(args)
-    return LLMEngine.from_engine_args(engine_args)
-
-
 def parse_args(mock_cli_str):
     parser = FlexibleArgumentParser(
         description='Demo on using the LLMEngine class directly')
@@ -29,7 +23,9 @@ def parse_args(mock_cli_str):
 
 def main(args: argparse.Namespace):
     """Main function that sets up and runs the prompt processing."""
-    engine = initialize_engine(args)
+    engine_args = EngineArgs.from_cli_args(args)
+    engine = LLMEngine.from_engine_args(engine_args)
+    return engine
 
 
 if __name__ == '__main__':
