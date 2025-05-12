@@ -38,7 +38,7 @@ class ExecutorBase(ABC):
         self,
         vllm_config: VllmConfig,
     ) -> None:
-        logger.info(f"[debug] 初始化 executor")
+        logger.info(f"[debug] 初始化 executor, self={self.__class__.__name__}")
         self.vllm_config = vllm_config
         self.model_config = vllm_config.model_config
         self.cache_config = vllm_config.cache_config

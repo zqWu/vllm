@@ -1473,17 +1473,17 @@ class TokenizerPoolConfig:
 
 
 class LoadFormat(str, enum.Enum):
-    AUTO = "auto"
-    PT = "pt"
-    SAFETENSORS = "safetensors"
-    NPCACHE = "npcache"
+    AUTO = "auto"                       # 自动推导 默认 safetensors
+    PT = "pt"                           # pytorch.bin格式
+    SAFETENSORS = "safetensors"         # hf推出的, 支持mmap加载
+    NPCACHE = "npcache"                 # vllm顶级的 kv cache格式
     DUMMY = "dummy"
     TENSORIZER = "tensorizer"
-    SHARDED_STATE = "sharded_state"
+    SHARDED_STATE = "sharded_state"     # hf的 sharded模型格式, 权重分布在多个 shard中
     GGUF = "gguf"
-    BITSANDBYTES = "bitsandbytes"
+    BITSANDBYTES = "bitsandbytes"       # 量化库
     MISTRAL = "mistral"
-    RUNAI_STREAMER = "runai_streamer"
+    RUNAI_STREAMER = "runai_streamer"   # 远程流式加载
     RUNAI_STREAMER_SHARDED = "runai_streamer_sharded"
     FASTSAFETENSORS = "fastsafetensors"
 

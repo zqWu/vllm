@@ -8,5 +8,21 @@
 - prefill 与 decode 在流程上的细节
 - step 过程细节
 - tensor parallel是如何做的
+- tokenizer_group 是什么
+- cuda graph 是什么
+	- https://zhuanlan.zhihu.com/p/467466998
+	实际应用程序中有大量的GPU操作, 每次都由 cpu独立提交到GPU并启动独立计算
+		每次提交有启动开销，而且可能还有锁机制
+	思想: cuda graphs将整个计算流程定义为一个图, 单次提交, 节省开销
+	一种gpu层面的性能优化技术
+- mla multi-layer latent attention
+- 模型是如何进行加载的: 见流程分析/create_engine.md
+- 模型格式 safetensor / pytorch.bin / ...
 
-- 模型是如何进行加载的
+- 推理日志
+```
+Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 47.5 tokens/s, Running: 6 reqs, Swapped: 0 reqs, Pending: 0 reqs, GPU KV cache usage: 5.6%, CPU KV cache usage: 0.0%.
+```
+在 Running: 1 reqs时, 大概是 8token/s
+1. 显然这个是并行处理,这种并行处理的细节
+2. 对于完成的req, 是等到全部完成后一起返回, 还是完成一个返回一个

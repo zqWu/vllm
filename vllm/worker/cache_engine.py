@@ -123,6 +123,7 @@ class CacheEngine:
         model_config: ModelConfig,
         parallel_config: ParallelConfig,
     ) -> int:
+        logger.info(f"[debug] CacheEngine 计算每个 kv_cache block所占的 mem 大小")
         head_size = model_config.get_head_size()
         num_heads = model_config.get_num_kv_heads(parallel_config)
         num_attention_layers = model_config.get_num_layers_by_block_type(

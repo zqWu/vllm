@@ -273,6 +273,7 @@ class LLMEngine:
                                                     self.tokenizer,
                                                     mm_registry)
 
+        logger.info(f"[debug] llm_engine中, 初始化 model_executor")
         self.model_executor = executor_class(vllm_config=vllm_config)
 
         if self.model_config.runner_type != "pooling":
@@ -419,6 +420,7 @@ class LLMEngine:
         The workers will determine the number of blocks in both the GPU cache
         and the swap CPU cache.
         """
+        logger.info(f"[debug] llm_engine::_initialize_kv_caches")
         start = time.time()
         num_gpu_blocks, num_cpu_blocks = (
             self.model_executor.determine_num_available_blocks())

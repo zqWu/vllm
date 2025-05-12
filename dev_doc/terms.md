@@ -1,4 +1,4 @@
-#
+# llm sampling 参数
 - temperature = 2: 对于一个非归一化概率,统一 除以温度后, 进行softmax [1.0/t, 3.3/t, 3e2/t, ...]
   - t < 1, 变尖锐, 保守+确定性
   - t > 1, 变平缓, 发散+创新性
@@ -35,3 +35,9 @@ r3 r3 r3 r3 r3    t2
 ```
 
 ## pp = pipeline parallel
+
+
+# torch.compile
+- https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html
+- torch > 2.0
+torch.compile() 会把你的 PyTorch 模型转为一个更快的低层图执行模型（通常用 TorchDynamo + AOTAutograd + TorchInductor 实现），从而显著提升执行速度。

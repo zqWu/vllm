@@ -1,11 +1,11 @@
 import argparse
 import os
 
-from dev_doc.examples.utils_gpu import get_single_gpu
+from dev_doc.examples.utils_gpu import get_single_gpu, print_pid_tid
 from vllm import EngineArgs, LLMEngine
 from vllm.utils import FlexibleArgumentParser
 
-gpu_id, gpu_free_mem, free_mem_percent = get_single_gpu()
+gpu_id, _, free_mem_percent = get_single_gpu()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpu_id}"
 os.environ["VLLM_USE_V1"] = "0"
@@ -29,9 +29,11 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == '__main__':
+    print_pid_tid()
     mock_cli_str = [
-        "--model=/data/models/opt-125m",
-        "--gpu_memory_utilization=0.1",
+        "--model=/home/dormi330/ws/models/opt-125m",
+        # "--model=/data/models/opt-125m",
+        f"--gpu_memory_utilization={free_mem_percent - 0.05}",
     ]
     args = parse_args(mock_cli_str)
     main(args)

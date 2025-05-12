@@ -33,6 +33,7 @@ class WorkerBase:
     """Worker interface that allows vLLM to cleanly separate implementations for
     different hardware. Also abstracts control plane communication, e.g., to
     communicate request metadata to other workers.
+
     """
 
     def __init__(
