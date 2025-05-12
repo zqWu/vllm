@@ -1,8 +1,20 @@
 - kv cache 是怎么获取的、如何进行保存、再次读取 
 - kv cache 的分配, 物理块 / 逻辑块
+	- 分配: worker.cache_engine 初始化时, 有 CacheEngine._allocate_kv_cache(...)-> List[torch.Tensor]
 - kv cache 的shape
-- page attn 是如何进行映射管理的
+	- 输入参数
+		- num_blocks=计算得到
+		- block_size=配置默认16
+		- num_kv_heads=模型配置, opt124m有12个注意力头
+		- head_size=模型配置, opt124m每个头有64维
 
+	- 不同的各个有所不同
+		- paged_attn: shape = return (2, num_blocks, block_size * num_kv_heads * head_size)
+	- xFormer: 使用 paged_attn
+	- flash_attn: shape = (2, num_blocks, block_size, num_kv_heads, head_size)
+
+- page attn 是如何进行映射管理的
+- vllm plugin system https://docs.vllm.ai/en/latest/design/plugin_system.html
 - flash attn 源码, 是怎么进行计算的
 - 模型是如何使用(调用) flash attn 相关函数(或算子)
 - prefill 与 decode 在流程上的细节

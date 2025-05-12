@@ -42,6 +42,7 @@ class CacheEngine:
         self.block_size = cache_config.block_size
         self.num_gpu_blocks = cache_config.num_gpu_blocks
         if self.num_gpu_blocks:
+            logger.info(f"[debug] TODO 为什么这里要除, 获取 num_gpu_block的机制")
             self.num_gpu_blocks //= parallel_config.pipeline_parallel_size
         self.num_cpu_blocks = cache_config.num_cpu_blocks
         if self.num_cpu_blocks:

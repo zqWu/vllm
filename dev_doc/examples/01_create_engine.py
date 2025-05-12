@@ -34,6 +34,7 @@ if __name__ == '__main__':
         "--model=/home/dormi330/ws/models/opt-125m",
         # "--model=/data/models/opt-125m",
         f"--gpu_memory_utilization={free_mem_percent - 0.05}",
+        f"--swap-space=0",  # 禁止 swap到内存上
     ]
     args = parse_args(mock_cli_str)
     main(args)
