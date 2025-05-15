@@ -2,10 +2,10 @@
 
 import os
 
-from dev_doc.examples.utils_gpu import get_single_gpu
+from dev_doc.examples.utils import Utils
 from vllm import LLM, SamplingParams
 
-gpu_id, _, free_mem_percent = get_single_gpu()
+gpu_id, _, free_mem_percent = Utils.get_single_gpu()
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpu_id}"
 os.environ["VLLM_USE_V1"] = "0"
 
@@ -39,7 +39,10 @@ sampling_params = SamplingParams(
 # 初始化vLLM offline batched inference实例，并加载指定模型
 # ===========================================================================
 # "/data/models/opt-125m" "facebook/opt-125m"
-llm = LLM(model="/data/models/opt-125m", gpu_memory_utilization=free_mem_percent - 0.05)
+llm = LLM(model=Utils.get_model_path(),
+          gpu_memory_utilization=free_mem_percent - 0.05,
+          swap_space=0.,  # 禁止swap到内存
+          )
 
 # ===========================================================================
 # 推理

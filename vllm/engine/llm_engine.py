@@ -761,7 +761,7 @@ class LLMEngine:
             self._validate_token_prompt(
                 prompt,
                 tokenizer=self.get_tokenizer(lora_request=lora_request))
-
+        logger.info(f"[debug] prompt str ==> token_ids")
         processed_inputs = self.input_preprocessor.preprocess(
             prompt,
             lora_request=lora_request,
@@ -1241,7 +1241,7 @@ class LLMEngine:
         sequences. This is normally done inside output processor, but it is
         required if the worker is to perform async forward pass to next step.
         """
-        logger.info(f"[output] _advance_to_next_step")
+        logger.info(f"[debug] _advance_to_next_step")
         for seq_group_metadata, sequence_group_outputs, scheduled_seq_group in \
             zip(seq_group_metadata_list, output, scheduled_seq_groups):
             seq_group = scheduled_seq_group.seq_group
@@ -1329,7 +1329,7 @@ class LLMEngine:
             >>>     if not (engine.has_unfinished_requests() or example_inputs):
             >>>         break
         """
-        logger.info(f"[debug] step")
+        logger.info(f"[debug] {self.__class__.__name__}::step")
         if self.parallel_config.pipeline_parallel_size > 1:
             raise NotImplementedError(
                 "Pipeline parallelism is only supported through AsyncLLMEngine "
@@ -1360,6 +1360,7 @@ class LLMEngine:
                 seq_group_metadata_list
         ) and not self._skip_scheduling_next_step:
             # Schedule iteration
+            logger.info(f"[debug] {self.__class__.__name__}开始调度")
             (seq_group_metadata_list, scheduler_outputs,
              allow_async_output_proc
              ) = self.scheduler[virtual_engine].schedule()

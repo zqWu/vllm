@@ -402,6 +402,7 @@ class OPTForCausalLM(nn.Module, SupportsPP):
 
     def load_weights(self, weights: Iterable[Tuple[str,
                                                    torch.Tensor]]) -> Set[str]:
+        print(f"[debug] {self.__class__.__name__}::load_model 加载权重到模型类")
         loader = AutoWeightsLoader(
             self,
             skip_prefixes=(["lm_head.weight"]

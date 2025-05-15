@@ -1,13 +1,14 @@
 import os
 import threading
 
+import GPUtil
+
 
 class Utils:
 
     @staticmethod
     def get_single_gpu():
         """获取最大可用显存的gpu"""
-        import GPUtil
         gpus = GPUtil.getGPUs()
 
         gpu_id = None
@@ -30,6 +31,7 @@ class Utils:
 
     @staticmethod
     def get_model_path():
+        # facebook/opt-125m
         candidate = [
             "/home/dormi330/ws/models/opt-125m",
             "/data/models/opt-125m"

@@ -312,7 +312,7 @@ class BlockTable:
             block.append_token_ids(cur_token_ids)
 
             blocks.append(block)
-
+        print(f"[debug] {self.__class__.__name__}::_allocate_blocks_for_token_ids done")
         return blocks
 
     def _get_all_token_ids(self) -> List[int]:

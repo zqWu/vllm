@@ -454,6 +454,7 @@ class DefaultModelLoader(BaseModelLoader):
                 model = _initialize_model(vllm_config=vllm_config)
 
             weights_to_load = {name for name, _ in model.named_parameters()}
+            logger.info(f"[debug] {self.__class__.__name__}::load_model 开始加载权重到模型类")
             loaded_weights = model.load_weights(
                 self.get_all_weights(model_config, model))
             self.counter_after_loading_weights = time.perf_counter()

@@ -45,6 +45,20 @@ token   原始概率（softmax 后）
 ## 第二次采样（Sample 2）
 完全独立于第一次采样，过程与 sample 1 一样
 
+# vllm 实现
+```python
+# 模型 facebook/opt-125m
+sampling_params = SamplingParams(
+    n=4,
+    temperature=0.1,
+    top_p=0.5,
+    max_tokens=2
+)
+prompt = "I like playing"
+```
+vllm 把这个转换成了 2个 不同的 request
+具体可以看 llm_engine.add_request 中，对于 n>1的处理
+
 
 # 实测1
 ```python
@@ -79,3 +93,4 @@ index = 0, text= with my, token_ids = (19, 127)
 index = 1, text= a ", token_ids = (10, 22)
 index = 2, text= PUB, token_ids = (221, 12027)
 index = 3, text= with friends, token_ids = (19, 964)
+

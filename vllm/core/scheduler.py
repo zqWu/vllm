@@ -1065,6 +1065,7 @@ class Scheduler:
         Returns:
             SchedulerPrefillOutputs.
         """
+        logger.info(f"[debug] _schedule_prefills")
         if budget.remaining_token_budget() == 0:
             # Do nothing: Can't add any more prefill anyway
             return SchedulerPrefillOutputs(
@@ -1228,6 +1229,7 @@ class Scheduler:
         decodes. If there's a pressure on GPU memory, decode requests can
         be swapped or preempted.
         """
+        logger.info(f"[debug] {self.__class__.__name__}._schedule_default")
         # Include running requests to the budget.
         budget = SchedulingBudget(
             token_budget=self.scheduler_config.max_num_batched_tokens,
@@ -1460,6 +1462,7 @@ class Scheduler:
 
     def _schedule(self) -> SchedulerOutputs:
         """Schedule queued requests."""
+        logger.info(f"[debug] {self.__class__.__name__}._schedule")
         if self.scheduler_config.chunked_prefill_enabled:
             return self._schedule_chunked_prefill()
         else:
@@ -1499,7 +1502,7 @@ class Scheduler:
     def schedule(
             self
     ) -> Tuple[List[SequenceGroupMetadata], SchedulerOutputs, bool]:
-        logger.info(f"[debug] Scheduler.schedule")
+        logger.info(f"[debug] {self.__class__.__name__}.schedule")
         # Schedule sequence groups.
         # This function call changes the internal states of the scheduler
         # such as self.running, self.swapped, and self.waiting.
@@ -1838,11 +1841,24 @@ class Scheduler:
             seq.status = SequenceStatus.SWAPPED
 
     def _passed_delay(self, now: float) -> bool:
+        ####################################################
+        # prev_time: 上次waiting队列调度的时间点
+        # last_prompt_latency = now - prev_time
+        # 现在 waiting队列中等待最久的时间 = now - earliest_arrival_time
+        # 是否调动判断
+        # 等待最久时间 > last_prompt_latency * delay_factor
+        # 如果 delay_factor > 1 && running非空, 则后续的等待时间会越来越长
+        # 如果 running队列为空, 则此次进行调动, 可以降低 last_prompt_latency
+        # vllm 配置启动参数 --scheduler-delay-factor 1.5, 该值默认0
+        ####################################################
         if self.prev_prompt:
             self.last_prompt_latency = now - self.prev_time
         self.prev_time, self.prev_prompt = now, False
+
         # Delay scheduling prompts to let waiting queue fill up
+        # 默认 self.scheduler_config.delay_factor=0
         if self.scheduler_config.delay_factor > 0 and self.waiting:
+            # 最早达到 waiting队列的 seq_group的时间
             earliest_arrival_time = min(
                 [e.metrics.arrival_time for e in self.waiting])
             passed_delay = ((now - earliest_arrival_time)

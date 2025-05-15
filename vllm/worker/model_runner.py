@@ -1012,7 +1012,7 @@ class GPUModelRunnerBase(ModelRunnerBase[TModelInputForGPU]):
         mm_registry: MultiModalRegistry = MULTIMODAL_REGISTRY,
     ):
         import os, threading  # noqa
-        logger.info(f"PID={os.getpid()}, tid={threading.get_ident()}")
+        logger.info(f"[debug] PID={os.getpid()}, tid={threading.get_ident()}")
 
         ModelRunnerBase.__init__(self, vllm_config)
         model_config = self.model_config

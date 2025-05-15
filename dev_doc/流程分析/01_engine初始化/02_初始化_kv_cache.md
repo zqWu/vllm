@@ -27,8 +27,8 @@ LLMEngine._initialize_kv_cache()
                         进行一次推理 OPTForCausalLM(mock_input, ...) => 单次 forward()
                         比对内存
                         可用的kv_cache内存 = gpu_mem * util% - non_cache_推理一次占用的内存
-                        每层 kv_cache_block大小 = n_hidden_layer * block_size * (key大小 + valu大小) * 数据类型(如fp16=2bytes)
-                        kv_cache block数量 = 可用的 kv_cahce内存 / (每个 kv cache block 大小)
+                        每层kv_cache_block大小 = n_hidden_layer * block_size * (key大小 + value大小) * 数据类型(如fp16=2bytes)
+                        kv_cache block数量 = 可用的kv_cache内存 / 每层kv_cache_block大小
 
     model_executor.initialize_cache()
         UniProcExecutor.initialize_cache()
@@ -43,6 +43,6 @@ LLMEngine._initialize_kv_cache()
                             3. kv_cache_allocation_shape = (2, 7654, 12288)
                             4. gpu上分配显存
                                 for _ in num_attention_layer:
-                                    layer_kv_cache = torch.zeros(kv_cache_allocation_shape).permute(kv_cache_stride_order)
+                                    layer_kv_cache = torch.zeros(kv_cache_allocation_shape, device=GPU).permute(kv_cache_stride_order)
                                     CacheEngine.kv_cache.append(layer_kv_cache)
                     self._warm_up_model()

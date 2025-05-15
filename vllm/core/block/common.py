@@ -207,6 +207,7 @@ class BlockPool:
                    block_size: int,
                    physical_block_id: Optional[int],
                    extra_hash: Optional[int] = None) -> Block:
+        print(f"[debug] {self.__class__.__name__}::init_block")
         if len(self._free_ids) == 0:
             self.increase_pool()
             assert len(self._free_ids) > 0

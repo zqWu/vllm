@@ -1322,6 +1322,7 @@ class LLM:
         guided_options: Optional[GuidedDecodingRequest] = None,
         priority: Optional[list[int]] = None,
     ) -> None:
+        logger.info(f"[debug] _validate_and_add_requests")
         if guided_options is not None:
             warnings.warn(
                 "guided_options_request is deprecated, use "

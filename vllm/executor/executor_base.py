@@ -115,6 +115,8 @@ class ExecutorBase(ABC):
                     num_gpu_blocks, num_cpu_blocks)
         max_concurrency = (num_gpu_blocks * self.cache_config.block_size /
                            self.model_config.max_model_len)
+        # max_concurrency数量 = 可用token kv 数量 / 每个请求所需的 token数量
+        # 可用 kv cache 数 = block_num * block_size
         logger.info("Maximum concurrency for %s tokens per request: %.2fx",
                     self.model_config.max_model_len, max_concurrency)
 

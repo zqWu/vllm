@@ -18,8 +18,11 @@
 - flash attn 源码, 是怎么进行计算的
 - 模型是如何使用(调用) flash attn 相关函数(或算子)
 - prefill 与 decode 在流程上的细节
+- GQA. 在qwen3.config.json中 hidden_size5120 != head_dim128 * num_attention_head64
 - step 过程细节
-- tensor parallel是如何做的
+- step中, batch中, 如果一个request结束, 要怎么处理
+
+- tensor parallel是如何做的: 原理上是矩阵乘法的row by row, 代码上 TODO
 - tokenizer_group 是什么
 - cuda graph 是什么
 	- https://zhuanlan.zhihu.com/p/467466998
