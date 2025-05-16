@@ -20,7 +20,7 @@ vllm 也需要根据你PyTorch是CUDA版还是CPU版，决定怎么编译和链�
 如果PyTorch还没装好，pip install -e .（源码安装）时会报错，比如 torch not found、nvcc not found、或者 C++/CUDA编译失败。
 
 ```bash
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+conda install pytorch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 pytorch-cuda=11.8 -c pytorch -c nvidia
 # 注意这里安装了 pytorch-cuda=11.8
 ```
 
@@ -43,6 +43,10 @@ vLLM 也推荐这种方式，因为它更接近官方NVIDIA发布的库结构。
 
 
 # 问题4. 检查安装vllm环境
+```
+python -c "import torch; print(torch.version.cuda);"
+```
+
 ```python
 import torch
 

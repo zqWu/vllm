@@ -36,3 +36,6 @@ int main() {
 
     return 0;
 }
+
+// 编译: nvcc -o add_one add_one.cu
+// 执行: ./add_one
