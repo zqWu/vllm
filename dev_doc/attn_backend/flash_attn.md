@@ -5,6 +5,8 @@ cuda中 FMA和FFMA是一个内容, 表达不同
 
 HBM = high bandwidth memory 高带宽内存
 
+https://www.youtube.com/watch?v=gBMO1JZav44&t=683s
+
 # 原始矩阵乘法计算量
 shape(A) = m * k
 shape(B) = k * n
@@ -32,13 +34,28 @@ q @k.T 需要进行  N * N * d_model次 FMA.
 https://www.youtube.com/watch?v=gBMO1JZav44
 
 
-
 ## 核心问题
 - 显存占用过大 (q @ k.T, softmax @ v), 特别是长 seq时, 显存消耗很大
 - 瓶颈不在 算力, 而在于读写上.
   - 着重降低对显存数据的访问次数
+
 ## 核心思想
-- tiling & fused kernel
-- re-computation 策略: 只保存必要的中间值, 以节省内存, 有些在反向传播时 重新计算
-- fused kernel. 如把 matmul softmax dropout 合并成一个 kernel
-- log-sum-exp 避免 softmax 溢出
+- tiling
+- fused kernel
+
+# A800-80G
+- SRAM (L2 cache) = 80M
+- 模型: qwen2.5, token embed dim = 5120
+  - 单个token, fp16的情况下
+    - qkv 矩阵, shape = 1 * 5120
+    - 数据量 = 1 * 5120 * 2bytes = 10k
+    - 单个token, qkv 一共有 30k
+
+## 简单问答 prompt 对应的token < 1024
+- qkv 一共占 30k * 1024 = 30 M, 完全可以存放在 sram 中
+
+## 长上下文, token数量 = 4k
+- qkv 一共占 30k * (4k) = 120M, 无法完全存放到 sram中
+
+## 更长的上下文, token = 16k
+- q的存储 = 10k * 16k = 160M, q已经不能存放到 sram中
