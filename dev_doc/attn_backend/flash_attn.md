@@ -51,6 +51,9 @@ https://www.youtube.com/watch?v=gBMO1JZav44
     - 数据量 = 1 * 5120 * 2bytes = 10k
     - 单个token, qkv 一共有 30k
 
+## q @ k.T 中间结果 N * N, 其中N= seq_length
+
+
 ## 简单问答 prompt 对应的token < 1024
 - qkv 一共占 30k * 1024 = 30 M, 完全可以存放在 sram 中
 
