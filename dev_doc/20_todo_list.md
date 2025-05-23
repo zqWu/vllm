@@ -14,9 +14,15 @@
 	- flash_attn: shape = (2, num_blocks, block_size, num_kv_heads, head_size)
 
 - page attn 是如何进行映射管理的
-- vllm plugin system https://docs.vllm.ai/en/latest/design/plugin_system.html
+  - vllm plugin system https://docs.vllm.ai/en/latest/design/plugin_system.html
 - flash attn 源码, 是怎么进行计算的
-- 模型是如何使用(调用) flash attn 相关函数(或算子)
+- attn-backend是什么? vllm 如何选择 attn-backend, 以及如何进行计算的
+  - 模型是如何使用(调用) flash attn 相关函数(或算子)
+- vllm中 forward_context.virtual_engine是什么
+	- `kv_cache = self.kv_cache[forward_context.virtual_engine]`
+	- virtual_engine的存在主要是为了支持pipeline parallelism。
+    - 在pipeline parallelism中，不同的pipeline stage可能需要使用不同的虚拟引擎，每个虚拟引擎都有自己独立的KV缓存。
+    - 注意力层初始化时会为每个pipeline stage创建独立的KV缓存
 - prefill 与 decode 在流程上的细节
 - GQA. 在qwen3.config.json中 hidden_size5120 != head_dim128 * num_attention_head64
 - step 过程细节
