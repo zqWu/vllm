@@ -23,6 +23,7 @@ class UniProcExecutor(ExecutorBase):
     def _init_executor(self) -> None:
         """Initialize the worker and load the model.
         """
+        logger.info(f"[debug] {self.__class__.__name__}._init_executor")
         self.driver_worker = WorkerWrapperBase(vllm_config=self.vllm_config,
                                                rpc_rank=0)
         distributed_init_method = get_distributed_init_method(
@@ -53,6 +54,7 @@ class UniProcExecutor(ExecutorBase):
                        kwargs: Optional[Dict] = None) -> List[Any]:
         if kwargs is None:
             kwargs = {}
+        logger.info(f"[debug] {self.__class__.__name__}.collective_rpc::{method}")
         answer = run_method(self.driver_worker, method, args, kwargs)
         return [answer]
 

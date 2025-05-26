@@ -38,6 +38,7 @@ class ExecutorBase(ABC):
         self,
         vllm_config: VllmConfig,
     ) -> None:
+        logger.info(f"[debug] __init__")
         self.vllm_config = vllm_config
         self.model_config = vllm_config.model_config
         self.cache_config = vllm_config.cache_config
@@ -137,6 +138,7 @@ class ExecutorBase(ABC):
     def execute_model(
         self, execute_model_req: ExecuteModelRequest
     ) -> Optional[List[Union[SamplerOutput, PoolerOutput]]]:
+        logger.info(f"[debug] {self.__class__.__name__}.execute_model")
         output = self.collective_rpc("execute_model",
                                      args=(execute_model_req, ))
         return output[0]

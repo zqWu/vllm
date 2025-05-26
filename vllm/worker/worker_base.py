@@ -545,6 +545,7 @@ class WorkerWrapperBase:
         Here we inject some common logic before initializing the worker.
         Arguments are passed to the worker class constructor.
         """
+        logger.info(f"[debug] init_worker")
         kwargs = all_kwargs[self.rpc_rank]
         self.vllm_config = kwargs.get("vllm_config", None)
         assert self.vllm_config is not None, (

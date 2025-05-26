@@ -20,8 +20,21 @@ from vllm.v1.structured_output import StructuredOutputManager
 EOS_TOKEN_ID = 50256
 
 
+def get_model_path():
+    import os
+    # facebook/opt-125m
+    candidate = [
+        "/home/dormi330/ws/models/opt-125m",
+        "/data/models/opt-125m"
+    ]
+    for _path in candidate:
+        if os.path.exists(_path):
+            return _path
+
+
 def create_scheduler(
-    model: str = "facebook/opt-125m",
+    # model: str = "facebook/opt-125m",
+    model: str = get_model_path(),
     max_num_seqs: int = 16,
     max_num_batched_tokens: int = 8192,
     enable_prefix_caching: Optional[bool] = None,

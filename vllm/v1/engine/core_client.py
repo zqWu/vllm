@@ -209,6 +209,7 @@ class InprocClient(EngineCoreClient):
         return self.engine_core.step()
 
     def add_request(self, request: EngineCoreRequest) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.add_request")
         self.engine_core.add_request(request)
 
     def abort_requests(self, request_ids: list[str]) -> None:

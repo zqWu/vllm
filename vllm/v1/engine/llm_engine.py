@@ -184,6 +184,7 @@ class LLMEngine:
         priority: int = 0,
     ) -> None:
         # Process raw inputs into the request.
+        logger.info(f"[debug] {self.__class__.__name__}.add_request")
         prompt_str, request = self.processor.process_inputs(
             request_id, prompt, params, arrival_time, lora_request,
             tokenization_kwargs, trace_headers, prompt_adapter_request,
@@ -213,7 +214,7 @@ class LLMEngine:
             self.engine_core.add_request(child_request)
 
     def step(self) -> list[RequestOutput]:
-
+        logger.info(f"[debug] {self.__class__.__name__}.step")
         if self.should_execute_dummy_batch:
             self.should_execute_dummy_batch = False
             self.engine_core.execute_dummy_batch()
