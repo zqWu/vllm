@@ -277,6 +277,7 @@ class OutputProcessor:
         request_index: int = 0,
         queue: Optional[RequestOutputCollector] = None,
     ) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.add_request")
         request_id = request.request_id
         if request_id in self.request_states:
             raise ValueError(f"Request id {request_id} already running.")

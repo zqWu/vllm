@@ -111,6 +111,7 @@ class Worker(WorkerBase):
             self._sleep_saved_buffers = {}
 
     def init_device(self):
+        logger.info(f"[debug] init_device")
         if self.device_config.device.type == "cuda":
             # torch.distributed.all_reduce does not free the input tensor until
             # the synchronization point. This causes the memory usage to grow
@@ -150,6 +151,7 @@ class Worker(WorkerBase):
     # FIXME(youkaichao & ywang96): Use TorchDispatchMode instead of memory pool
     # to hijack tensor allocation.
     def load_model(self) -> None:
+        logger.info(f"[debug] load_model")
         if self.vllm_config.model_config.enable_sleep_mode:
             allocator = CuMemAllocator.get_instance()
             assert allocator.get_current_usage() == 0, (
@@ -267,6 +269,7 @@ class Worker(WorkerBase):
         self,
         scheduler_output: "SchedulerOutput",
     ) -> Optional[ModelRunnerOutput]:
+        logger.info(f"[debug] {self.__class__.__name__}.execute_model")
         intermediate_tensors = None
         if not get_pp_group().is_first_rank:
             intermediate_tensors = IntermediateTensors(

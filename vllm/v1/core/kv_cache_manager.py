@@ -212,6 +212,7 @@ class KVCacheManager:
         Returns:
             A list of new allocated blocks.
         """
+        logger.info(f"[debug] {self.__class__.__name__}.allocate_slots")
         if num_new_tokens == 0:
             raise ValueError("num_new_tokens must be greater than 0")
 

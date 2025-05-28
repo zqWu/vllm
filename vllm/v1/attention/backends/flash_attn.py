@@ -325,6 +325,7 @@ class FlashAttentionMetadataBuilder:
     def build(self, num_reqs: int, num_actual_tokens: int, max_query_len: int,
               common_prefix_len: int,
               common_attn_metadata: CommonAttentionMetadata):
+        logger.info(f"[debug] {self.__class__.__name__}.build")
         max_seq_len = self.runner.seq_lens_np[:num_reqs].max()
         query_start_loc = common_attn_metadata.query_start_loc
         seq_lens = common_attn_metadata.seq_lens
@@ -557,6 +558,8 @@ class FlashAttentionImpl(AttentionImpl):
         if attn_metadata is None:
             # Profiling run.
             return output
+
+        logger.info(f"[debug] {self.__class__.__name__}.forward")
 
         # IMPORTANT!
         # NOTE(woosuk): With piece-wise CUDA graphs, this method is executed in

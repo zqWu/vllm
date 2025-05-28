@@ -55,6 +55,7 @@ class EngineCore:
                  executor_class: type[Executor],
                  log_stats: bool,
                  executor_fail_callback: Optional[Callable] = None):
+        logger.info(f"[debug] EngineCore::__init__")
         assert vllm_config.model_config.runner_type != "pooling"
 
         self.vllm_config = vllm_config
@@ -123,6 +124,7 @@ class EngineCore:
 
     def _initialize_kv_caches(
             self, vllm_config: VllmConfig) -> tuple[int, int, KVCacheConfig]:
+        logger.info(f"[debug] _initialize_kv_caches")
         start = time.time()
 
         # Get all kv cache needed by the model
@@ -166,7 +168,7 @@ class EngineCore:
 
     def add_request(self, request: EngineCoreRequest):
         """Add request to the scheduler."""
-
+        logger.info(f"[debug] {self.__class__.__name__}.add_request")
         if request.mm_hashes is not None:
             # Here, if hash exists for a multimodal input, then it will be
             # fetched from the cache, else it will be added to the cache.
@@ -199,6 +201,7 @@ class EngineCore:
                                        RequestStatus.FINISHED_ABORTED)
 
     def execute_model(self, scheduler_output: SchedulerOutput):
+        logger.info(f"[debug] {self.__class__.__name__}.execute_model")
         try:
             return self.model_executor.execute_model(scheduler_output)
         except BaseException as err:
@@ -213,6 +216,7 @@ class EngineCore:
 
         # Check for any requests remaining in the scheduler - unfinished,
         # or finished and not yet removed from the batch.
+        logger.info(f"[debug] {self.__class__.__name__}.step")
         if not self.scheduler.has_requests():
             return EngineCoreOutputs(
                 outputs=[],

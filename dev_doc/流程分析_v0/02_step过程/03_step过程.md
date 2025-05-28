@@ -27,6 +27,7 @@ SequenceData
     _new_appended_tokens
     _mrope_position_delta       gpt4o: 当前位置编码相对于缓存开头的位置差异
 
+=============
 Sequence
     seq_id
     inputs
@@ -37,10 +38,12 @@ Sequence
     is_prefill()
     is_finished()
 
+=============
 SequenceGroup
+    request_id
     seqs = List[Sequence]
     prompt
-    promt_token_ids
+    prompt_token_ids
     metrics = {arrival_time | last_token_time | first_token_time | first_scheduled_time | time_in_queue | ...}
     state = {num_steps=1, current_step=0}
     cached_request_output = None

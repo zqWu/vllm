@@ -75,6 +75,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         vllm_config: VllmConfig,
         device: torch.device,
     ):
+        logger.info(f"[debug] __init__")
         self.vllm_config = vllm_config
         self.model_config = vllm_config.model_config
         self.cache_config = vllm_config.cache_config
@@ -140,7 +141,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         # self.kv_cache_config: KVCacheConfig
         # self.input_batch: InputBatch # Persistent batch.
 
-        # req_id -> (input_id -> encoder_output)
+        # req_id -> (input_id -> encoder_output)self.attn_backends
         self.encoder_cache: dict[str, dict[int, torch.Tensor]] = {}
 
         # Set up speculative decoding.
@@ -1056,7 +1057,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         scheduler_output: "SchedulerOutput",
         intermediate_tensors: Optional[IntermediateTensors] = None,
     ) -> Union[ModelRunnerOutput, IntermediateTensors]:
-
+        logger.info(f"[debug] {self.__class__.__name__}.execute_model")
         self._update_states(scheduler_output)
         if not scheduler_output.total_num_scheduled_tokens:
             if not has_kv_transfer_group():
@@ -1426,6 +1427,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         return draft_token_ids
 
     def load_model(self) -> None:
+        logger.info(f"[debug] load_model")
         logger.info("Starting to load model %s...", self.model_config.model)
         with DeviceMemoryProfiler() as m:  # noqa: SIM117
             time_before_load = time.perf_counter()
@@ -1821,6 +1823,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         """
         Initialize the attention backends and attention metadata builders.
         """
+        logger.info(f"[debug] initialize_attn_backend")
         assert len(self.attn_backends) == 0 and len(
             self.attn_metadata_builders
         ) == 0, "Attention backends are already initialized"
@@ -1907,6 +1910,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                         num_blocks, kv_cache_spec.block_size,
                         kv_cache_spec.num_kv_heads, kv_cache_spec.head_size)
                     dtype = kv_cache_spec.dtype
+                    logger.info(f"[debug] {self.__class__.__name__} 初始化 {layer_name} 的 kv_cache")
                     kv_caches[layer_name] = torch.zeros(kv_cache_shape,
                                                         dtype=dtype,
                                                         device=self.device)

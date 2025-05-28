@@ -22,6 +22,7 @@ from vllm.platforms import _Backend, current_platform
 from vllm.utils import direct_register_custom_op
 
 
+layer_num = 1
 class Attention(nn.Module):
     """Attention layer.
 
@@ -56,6 +57,10 @@ class Attention(nn.Module):
         `self.kv_cache`.
         """
         super().__init__()
+        global layer_num
+        print(f"[debug] {self.__class__.__name__}.__init__, layer_num={layer_num}")
+        layer_num += 1
+
         if per_layer_sliding_window is not None:
             # per-layer sliding window
             sliding_window = per_layer_sliding_window
@@ -154,6 +159,7 @@ class Attention(nn.Module):
         self.attn_type = attn_type
         # use a placeholder kv cache tensor during init, which will be replaced
         # by bind_kv_cache
+        # this variable will not be accessed if use_direct_call is True
         # this variable will not be accessed if use_direct_call is True
         self.kv_cache = [
             torch.tensor([]) for _ in range(get_current_vllm_config(
