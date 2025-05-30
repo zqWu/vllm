@@ -20,7 +20,7 @@ class BlockTable:
         pin_memory: bool,
         device: torch.device,
     ):
-        logger.info(f"[debug] {self.__class__.__name__}.__init__")
+        logger.info(f"[debug] {self.__class__.__name__}.__init__ block_table.shape={max_num_reqs, max_num_blocks_per_req}")
         self.max_num_reqs = max_num_reqs
         self.max_num_blocks_per_req = max_num_blocks_per_req
         self.max_num_batched_tokens = max_num_batched_tokens
@@ -55,6 +55,7 @@ class BlockTable:
         block_ids: list[int],
         row_idx: int,
     ) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.append_row {block_ids}")
         if not block_ids:
             return
         num_blocks = len(block_ids)
@@ -63,6 +64,7 @@ class BlockTable:
         self.block_table_np[row_idx, start:start + num_blocks] = block_ids
 
     def add_row(self, block_ids: list[int], row_idx: int) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.add_row {block_ids}")
         self.num_blocks_per_row[row_idx] = 0
         self.append_row(block_ids, row_idx)
 
@@ -73,6 +75,7 @@ class BlockTable:
         self.num_blocks_per_row[tgt] = num_blocks
 
     def swap_row(self, src: int, tgt: int) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.swap_row, {src} <-> {tgt}")
         num_blocks_src = self.num_blocks_per_row[src]
         num_blocks_tgt = self.num_blocks_per_row[tgt]
         self.num_blocks_per_row[src] = num_blocks_tgt
@@ -81,6 +84,7 @@ class BlockTable:
         self.block_table_np[[src, tgt]] = self.block_table_np[[tgt, src]]
 
     def commit(self, num_reqs: int) -> None:
+        logger.info(f"[debug] {self.__class__.__name__}.commit, num_reqs={num_reqs}")
         self.block_table[:num_reqs].copy_(self.block_table_cpu[:num_reqs],
                                           non_blocking=True)
 

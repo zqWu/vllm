@@ -294,6 +294,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         new/resumed/paused/finished request in the batch.
         """
         # Remove finished requests from the cached states.
+        logger.info(f"[debug] {self.__class__.__name__}._update_states")
         for req_id in scheduler_output.finished_req_ids:
             self.requests.pop(req_id, None)
             self.encoder_cache.pop(req_id, None)
@@ -499,12 +500,12 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         # Get the number of scheduled tokens for each request.
         req_ids = self.input_batch.req_ids
-        tokens = [scheduler_output.num_scheduled_tokens[i] for i in req_ids]
+        tokens = [scheduler_output.num_scheduled_tokens[i] for i in req_ids]  # 每个req需要的tokens数量 eg = [2,5,3]
         num_scheduled_tokens = np.array(tokens, dtype=np.int32)
         max_num_scheduled_tokens = max(tokens)
 
         # Get request indices.
-        # E.g., [2, 5, 3] -> [0, 0, 1, 1, 1, 1, 1, 2, 2, 2]
+        # E.g., tokens=[2, 5, 3] -> [0, 0, 1, 1, 1, 1, 1, 2, 2, 2]
         req_indices = np.repeat(self.arange_np[:num_reqs], num_scheduled_tokens)
 
         # Get batched arange.
@@ -514,16 +515,13 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         # Step 1. [2, 5, 3] -> [2, 7, 10]
         cu_num_tokens = np.cumsum(num_scheduled_tokens)
         # Step 2. [2, 7, 10] -> [0, 0, 2, 2, 2, 2, 2, 7, 7, 7]
-        cumsums_offsets = np.repeat(cu_num_tokens - num_scheduled_tokens,
-                                    num_scheduled_tokens)
+        cumsums_offsets = np.repeat(cu_num_tokens - num_scheduled_tokens, num_scheduled_tokens)
         # Step 3. [0, 1, 0, 1, 2, 3, 4, 0, 1, 2]
         arange = self.arange_np[:total_num_scheduled_tokens] - cumsums_offsets
 
         # Get positions.
         positions_np = self.positions_np[:total_num_scheduled_tokens]
-        np.add(self.input_batch.num_computed_tokens_cpu[req_indices],
-               arange,
-               out=positions_np)
+        np.add(self.input_batch.num_computed_tokens_cpu[req_indices], arange, out=positions_np)
 
         # Calculate M-RoPE positions.
         # Only relevant for models using M-RoPE (e.g, Qwen2-VL)
@@ -531,11 +529,10 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             self._calc_mrope_positions(scheduler_output)
 
         # Get token indices.
-        # E.g., [0, 1, 0, 1, 2, 3, 4, 0, 1, 2]
+        # E.g., [0, 1, 0, 1, 2, 3, 4, 0, 1, 2] = position_np
         # -> [0, 1, M, M + 1, M + 2, M + 3, M + 4, 2 * M, 2 * M + 1, 2 * M + 2]
         # where M is the max_model_len.
-        token_indices = (positions_np +
-                         req_indices * self.input_batch.token_ids_cpu.shape[1])
+        token_indices = (positions_np + req_indices * self.input_batch.token_ids_cpu.shape[1])
 
         # NOTE(woosuk): We use torch.index_select instead of np.take here
         # because torch.index_select is much faster than np.take for large
@@ -556,9 +553,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             # NOTE(woosuk): We can't simply use `token_indices // block_size`
             # here because M (max_model_len) is not necessarily divisible by
             # block_size.
-            block_table_indices = (
-                req_indices * block_table.max_num_blocks_per_req +
-                positions_np // block_size)
+            block_table_indices = req_indices * block_table.max_num_blocks_per_req + positions_np // block_size
             block_table_cpu = block_table.get_cpu_tensor()
             block_numbers = block_table_cpu.flatten()[block_table_indices].numpy()
             block_offsets = positions_np % block_size

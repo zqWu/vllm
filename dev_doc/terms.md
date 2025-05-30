@@ -1,4 +1,9 @@
 # APC = automated prefix caching
+# AOT scheduler 
+- ahead of time scheduler
+- flash attn v3特有的优化功能
+- 生成的元数据 放在 FashAttentionMetadata中
+
 # lookahead token (gpt4o - 存疑)
 指当前推理中, 尚未提交到 kv cache的token, 但系统已经为它分配了部分计算资源
 

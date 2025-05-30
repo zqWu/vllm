@@ -15,8 +15,7 @@ os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"  # debug, 单进程更好
 
 
 def parse_args(mock_cli_str):
-    parser = FlexibleArgumentParser(
-        description='Demo on using the LLMEngine class directly')
+    parser = FlexibleArgumentParser()
     parser = EngineArgs.add_cli_args(parser)
 
     if mock_cli_str:
