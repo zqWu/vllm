@@ -83,8 +83,8 @@ class Executor(ExecutorBase):
         self,
         scheduler_output,
     ) -> Union[ModelRunnerOutput, Future[ModelRunnerOutput]]:
-        output = self.collective_rpc("execute_model",
-                                     args=(scheduler_output, ))
+        print(f"[debug] {self.__class__.__name__}.execute_model")
+        output = self.collective_rpc("execute_model", args=(scheduler_output, ))
         return output[0]
 
     @property

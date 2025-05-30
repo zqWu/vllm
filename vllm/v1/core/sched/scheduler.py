@@ -190,19 +190,21 @@ class Scheduler(SchedulerInterface):
         while req_index < len(self.running) and token_budget > 0:
             request = self.running[req_index]
 
-            num_new_tokens = (request.num_tokens_with_spec -
-                              request.num_computed_tokens)
-            if (0 < self.scheduler_config.long_prefill_token_threshold <
-                    num_new_tokens):
-                num_new_tokens = (
-                    self.scheduler_config.long_prefill_token_threshold)
+            # num_tokens_with_spec = len(total_token_ids) + len(spec_token_ids)
+            # total_token_ids = len(prompt_token_ids) + len(output_token_ids)
+            num_new_tokens = request.num_tokens_with_spec - request.num_computed_tokens
+
+            # 约束:
+            # num_new_tokens <= 配置
+            # num_new_tokens <= 预算
+            # num_new_tokens <= 模型限制 - num_computed_tokens
+            if 0 < self.scheduler_config.long_prefill_token_threshold < num_new_tokens:
+                num_new_tokens = self.scheduler_config.long_prefill_token_threshold
             num_new_tokens = min(num_new_tokens, token_budget)
 
             # Make sure the input position does not exceed the max model len.
             # This is necessary when using spec decoding.
-            num_new_tokens = min(
-                num_new_tokens,
-                self.max_model_len - request.num_computed_tokens)
+            num_new_tokens = min(num_new_tokens,  self.max_model_len - request.num_computed_tokens)
 
             # Schedule encoder inputs.
             encoder_inputs_to_schedule = None
@@ -213,7 +215,7 @@ class Scheduler(SchedulerInterface):
                      request, request.num_computed_tokens, num_new_tokens,
                      encoder_budget)
 
-            if num_new_tokens == 0:
+            if num_new_tokens == 0:  # 比如说 budget不够了
                 # The request cannot be scheduled because one of the following
                 # reasons:
                 # 1. No new tokens to schedule. This may happen when PP>1 and
@@ -228,10 +230,12 @@ class Scheduler(SchedulerInterface):
                 continue
 
             while True:
+                # 为 request 的 new_token分配 slot
                 new_blocks = self.kv_cache_manager.allocate_slots(
                     request,
                     num_new_tokens,
                     num_lookahead_tokens=self.num_lookahead_tokens)
+
                 if new_blocks is None:
                     # The request cannot be scheduled.
                     # Preempt the lowest-priority request.
@@ -308,7 +312,7 @@ class Scheduler(SchedulerInterface):
             while self.waiting and token_budget > 0:
                 if len(self.running) == self.max_num_running_reqs:
                     break
-
+                logger.info(f"[debug] {self.__class__.__name__} 开始处理 waiting队列")
                 request = self.waiting[0]
                 num_prealloc_computed_tokens = 0
                 # P/D: skip request if still waiting for remote kvs.
@@ -347,9 +351,7 @@ class Scheduler(SchedulerInterface):
 
                 # Get already-cached tokens.
                 if num_prealloc_computed_tokens == 0:
-                    new_computed_blocks, num_native_computed_tokens = \
-                        self.kv_cache_manager.get_computed_blocks(
-                            request)
+                    new_computed_blocks, num_native_computed_tokens = self.kv_cache_manager.get_computed_blocks(request)
                 else:
                     # P/D: skip checking prefix cache if loaded from remote kvs.
                     new_computed_blocks = KVCacheBlocks.create_empty()
@@ -358,8 +360,7 @@ class Scheduler(SchedulerInterface):
                 # Get externally-cached tokens if using a KVConnector.
                 num_external_computed_tokens, load_kv_async = (
                     (0, False) if self.connector is None else
-                    self.connector.get_num_new_matched_tokens(
-                        request, num_native_computed_tokens))
+                    self.connector.get_num_new_matched_tokens(request, num_native_computed_tokens))
 
                 # Total computed tokens (local + external).
                 num_computed_tokens = (num_native_computed_tokens +
@@ -396,6 +397,7 @@ class Scheduler(SchedulerInterface):
                             # The request cannot be scheduled.
                             break
 
+                logger.info(f"[debug] Scheduler.schedule() 为request分配 slots")
                 new_blocks = self.kv_cache_manager.allocate_slots(
                     request,
                     num_new_tokens + num_external_computed_tokens,
@@ -417,7 +419,7 @@ class Scheduler(SchedulerInterface):
                         new_computed_blocks + new_blocks,
                         num_external_computed_tokens,
                     )
-
+                logger.info(f"[debug] {self.__class__.__name__} waiting.popleft()")
                 self.waiting.popleft()
                 if load_kv_async:
                     # If loading async, allocate memory and put request
@@ -430,17 +432,16 @@ class Scheduler(SchedulerInterface):
                     structured_output_request_ids[
                         request.request_id] = req_index
                 req_index += 1
+                logger.info(f"[debug] {self.__class__.__name__} running.append(request)")
                 self.running.append(request)
                 if self.log_stats:
-                    request.record_event(EngineCoreEventType.SCHEDULED,
-                                         scheduled_timestamp)
+                    request.record_event(EngineCoreEventType.SCHEDULED, scheduled_timestamp)
                 if request.status == RequestStatus.WAITING:
                     scheduled_new_reqs.append(request)
                 elif request.status == RequestStatus.PREEMPTED:
                     scheduled_resumed_reqs.append(request)
                 else:
-                    raise RuntimeError(
-                        f"Invalid request status: {request.status}")
+                    raise RuntimeError(f"Invalid request status: {request.status}")
 
                 if self.lora_config and request.lora_request:
                     scheduled_loras.add(request.lora_request.lora_int_id)
@@ -450,7 +451,7 @@ class Scheduler(SchedulerInterface):
                 token_budget -= num_new_tokens
                 request.status = RequestStatus.RUNNING
                 request.num_computed_tokens = num_computed_tokens
-
+                logger.info(f"[debug] {self.__class__.__name__} 更新 request信息, budget信息")
                 # Encoder-related.
                 if encoder_inputs_to_schedule:
                     scheduled_encoder_inputs[request.request_id] = (
@@ -459,7 +460,7 @@ class Scheduler(SchedulerInterface):
                     for i in encoder_inputs_to_schedule:
                         self.encoder_cache_manager.allocate(request, i)
                     encoder_budget = new_encoder_budget
-
+            logger.info(f"[debug] {self.__class__.__name__} waiting队列处理结束")
         # Put back any skipped requests at the head of the waiting queue
         if skipped_waiting_requests:
             self.waiting.extendleft(skipped_waiting_requests)
@@ -482,8 +483,7 @@ class Scheduler(SchedulerInterface):
         if self.running:
             any_request = self.running[0]
             num_common_prefix_blocks = (
-                self.kv_cache_manager.get_num_common_prefix_blocks(
-                    any_request, len(self.running)))
+                self.kv_cache_manager.get_num_common_prefix_blocks(any_request, len(self.running)))
 
         grammar_bitmask = self.structured_output_manager.grammar_bitmask(
             self.requests,
@@ -492,8 +492,7 @@ class Scheduler(SchedulerInterface):
         )
         # Construct the scheduler output.
         new_reqs_data = [
-            NewRequestData.from_request(req,
-                                        req_to_new_block_ids[req.request_id])
+            NewRequestData.from_request(req, req_to_new_block_ids[req.request_id])
             for req in scheduled_new_reqs
         ]
         resumed_reqs_data = [
@@ -539,7 +538,7 @@ class Scheduler(SchedulerInterface):
         if self.connector is not None:
             meta = self.connector.build_connector_meta(scheduler_output)
             scheduler_output.kv_connector_metadata = meta
-
+        logger.info(f"[debug] {self.__class__.__name__} 发送 kv_event, 目前 kv_event_enabled=False")
         events = self.kv_cache_manager.take_events()
         if events:
             batch = KVEventBatch(ts=time.time(), events=events)

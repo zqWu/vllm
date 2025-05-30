@@ -159,8 +159,7 @@ class InputBatch:
             dtype=torch.float,
             device="cpu",
             pin_memory=pin_memory)
-        self.frequency_penalties_cpu = \
-            self.frequency_penalties_cpu_tensor.numpy()
+        self.frequency_penalties_cpu = self.frequency_penalties_cpu_tensor.numpy()
         self.frequency_penalties_reqs: set[str] = set()
 
         # Presence penalty related data structures
@@ -171,8 +170,7 @@ class InputBatch:
                                                          dtype=torch.float,
                                                          device="cpu",
                                                          pin_memory=pin_memory)
-        self.presence_penalties_cpu = self.presence_penalties_cpu_tensor.numpy(
-        )
+        self.presence_penalties_cpu = self.presence_penalties_cpu_tensor.numpy()
         self.presence_penalties_reqs: set[str] = set()
 
         # Repetition penalty related data structures
@@ -184,8 +182,7 @@ class InputBatch:
             dtype=torch.float,
             device="cpu",
             pin_memory=pin_memory)
-        self.repetition_penalties_cpu = \
-            self.repetition_penalties_cpu_tensor.numpy()
+        self.repetition_penalties_cpu = self.repetition_penalties_cpu_tensor.numpy()
         self.repetition_penalties_reqs: set[str] = set()
 
         # req_index -> (min_tokens, stop_token_ids)
@@ -210,8 +207,7 @@ class InputBatch:
         # To accumulate prompt logprobs tensor chunks across prefill steps.
         self.in_progress_prompt_logprobs_cpu: dict[str, LogprobsTensors] = {}
 
-        self.logit_bias: list[Optional[dict[int,
-                                            float]]] = [None] * max_num_reqs
+        self.logit_bias: list[Optional[dict[int, float]]] = [None] * max_num_reqs
         self.has_allowed_token_ids: set[str] = set()
         # NOTE(lufang): In the mask tensor, if the corresponding token allowed,
         # the value is False. Since we use masked_fill_ to set -inf.
@@ -258,8 +254,7 @@ class InputBatch:
             req_index, :num_prompt_tokens] = request.prompt_token_ids
         start_idx = num_prompt_tokens
         end_idx = start_idx + len(request.output_token_ids)
-        self.token_ids_cpu[req_index,
-                           start_idx:end_idx] = request.output_token_ids
+        self.token_ids_cpu[req_index, start_idx:end_idx] = request.output_token_ids
         # Number of token ids in token_ids_cpu.
         # NOTE(woosuk): This may include spec decode tokens.
         self.num_tokens[req_index] = request.num_tokens
@@ -303,8 +298,7 @@ class InputBatch:
         if sampling_params.repetition_penalty != 1.0:
             self.repetition_penalties_reqs.add(req_id)
         if sampling_params.min_tokens:
-            self.min_tokens[req_index] = (sampling_params.min_tokens,
-                                          sampling_params.all_stop_token_ids)
+            self.min_tokens[req_index] = (sampling_params.min_tokens, sampling_params.all_stop_token_ids)
 
         # NOTE(woosuk): self.generators should not include the requests that
         # do not have their own generator.

@@ -46,8 +46,7 @@ class SingleTypeKVCacheManager(ABC):
         # Mapping from request ID to blocks to track the blocks allocated
         # for each request, so that we can free the blocks when the request
         # is finished.
-        self.req_to_blocks: defaultdict[str,
-                                        list[KVCacheBlock]] = defaultdict(list)
+        self.req_to_blocks: defaultdict[str, list[KVCacheBlock]] = defaultdict(list)
 
         # {req_id: The number of cached blocks for this given request}
         # This is used to track the number of cached blocks for each request.
@@ -108,8 +107,7 @@ class SingleTypeKVCacheManager(ABC):
             # A running request. Should not have new computed blocks.
             assert len(new_computed_blocks) == 0
 
-    def allocate_new_blocks(self, request_id: str,
-                            num_tokens: int) -> list[KVCacheBlock]:
+    def allocate_new_blocks(self, request_id: str, num_tokens: int) -> list[KVCacheBlock]:
         """
         Allocate new blocks for the request to give it at least `num_tokens` 
         token slots.
@@ -122,14 +120,16 @@ class SingleTypeKVCacheManager(ABC):
         Returns:
             The new allocated blocks.
         """
+        print(f"[debug] {self.__class__.__name__} 分配block, req_id={request_id}, num_tokens={num_tokens}")
         req_blocks = self.req_to_blocks[request_id]
         num_required_blocks = cdiv(num_tokens, self.block_size)
         num_new_blocks = num_required_blocks - len(req_blocks)
         if num_new_blocks <= 0:
             return []
         else:
-            new_blocks = self.block_pool.get_new_blocks(
-                num_new_blocks * self.num_kv_cache_groups)
+            new_blocks = self.block_pool.get_new_blocks(num_new_blocks * self.num_kv_cache_groups)
+            print(f"[debug] {self.__class__.__name__} req_id={request_id} 完成blocks分配, 更新 kv_cache_manager.req_to_blocks")
+            print(f"[debug] {self.__class__.__name__} req_id={request_id} new_blocks[0]={new_blocks[0]}")
             req_blocks.extend(new_blocks)
             return new_blocks
 
@@ -245,13 +245,11 @@ class FullAttentionManager(SingleTypeKVCacheManager):
             computed_blocks.pop()
         return computed_blocks
 
-    def remove_skipped_blocks(self, request_id: str,
-                              num_computed_tokens: int) -> None:
+    def remove_skipped_blocks(self, request_id: str, num_computed_tokens: int) -> None:
         # No need to remove blocks for full attention.
         pass
 
-    def get_num_common_prefix_blocks(self, request_id: str,
-                                     num_running_requests: int) -> int:
+    def get_num_common_prefix_blocks(self, request_id: str, num_running_requests: int) -> int:
         blocks = self.req_to_blocks[request_id]
         num_common_blocks = 0
         for block in blocks:
@@ -334,8 +332,7 @@ class SlidingWindowManager(SingleTypeKVCacheManager):
             blocks[i] = self._null_block
         self.block_pool.free_blocks(removed_blocks)
 
-    def get_num_common_prefix_blocks(self, request_id: str,
-                                     num_running_requests: int) -> int:
+    def get_num_common_prefix_blocks(self, request_id: str, num_running_requests: int) -> int:
         """
         NOTE(Chen): The prefix blocks are null blocks for sliding window layers.
         So it's not correct to count ref_cnt like FullAttentionManager. Return 
@@ -351,8 +348,7 @@ spec_manager_map: dict[type[KVCacheSpec], type[SingleTypeKVCacheManager]] = {
 }
 
 
-def get_manager_for_kv_cache_spec(kv_cache_spec: KVCacheSpec,
-                                  **kwargs) -> SingleTypeKVCacheManager:
+def get_manager_for_kv_cache_spec(kv_cache_spec: KVCacheSpec, **kwargs) -> SingleTypeKVCacheManager:
     manager_class = spec_manager_map[type(kv_cache_spec)]
     manager = manager_class(kv_cache_spec, **kwargs)
     return manager

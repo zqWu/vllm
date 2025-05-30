@@ -63,7 +63,8 @@ if __name__ == '__main__':
     Utils.print_pid_tid()  # PYDEVD_USE_FRAME_EVAL
     mock_cli_str = [
         f"--model={Utils.get_model_path()}",
-        f"--gpu_memory_utilization={free_mem_percent - 0.05}",
+        # f"--gpu_memory_utilization={free_mem_percent - 0.05}",
+        f"--gpu_memory_utilization=0.9",
         f"--swap-space=0",  # 禁止 swap到内存上
     ]
     args = parse_args(mock_cli_str)

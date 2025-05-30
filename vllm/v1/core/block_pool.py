@@ -38,9 +38,8 @@ class BlockPool:
         self.num_gpu_blocks = num_gpu_blocks
         self.enable_caching = enable_caching
         # All kv-cache blocks.
-        self.blocks: list[KVCacheBlock] = [
-            KVCacheBlock(idx) for idx in range(num_gpu_blocks)
-        ]
+        logger.info(f"[debug] BlockPool 创建所有 KVCacheBlock, 数量={num_gpu_blocks}")
+        self.blocks: list[KVCacheBlock] = [KVCacheBlock(idx) for idx in range(num_gpu_blocks)]
         # Free block queue that constructs and manipulates a doubly linked
         # list of free blocks (including eviction candidates when caching is
         # enabled).
@@ -66,8 +65,7 @@ class BlockPool:
         self.enable_kv_cache_events = enable_kv_cache_events
         self.kv_event_queue: list[KVCacheEvent] = []
 
-    def get_cached_block(self,
-                         block_hash: BlockHashType) -> Optional[KVCacheBlock]:
+    def get_cached_block(self, block_hash: BlockHashType) -> Optional[KVCacheBlock]:
         """Get a cached block by the block hash, or None if cache miss.
         If there are duplicated blocks, we return the first block in the cache.
 
@@ -194,9 +192,9 @@ class BlockPool:
         Returns:
             A list of new block.
         """
+        logger.info(f"[debug] {self.__class__.__name__}.get_new_blocks")
         if num_blocks > self.get_num_free_blocks():
-            raise ValueError(
-                f"Cannot get {num_blocks} free blocks from the pool")
+            raise ValueError(f"Cannot get {num_blocks} free blocks from the pool")
 
         ret: list[KVCacheBlock] = []
         idx = 0
@@ -249,6 +247,7 @@ class BlockPool:
             blocks: A list of blocks to touch.
         """
         for block in blocks:
+            logger.info(f"[debug] {self.__class__.__name__}.touch block_id={block.block_id}")
             # ref_cnt=0 means this block is in the free list (i.e. eviction
             # candidate), so remove it.
             if block.ref_cnt == 0 and block != self.null_block:
@@ -264,6 +263,7 @@ class BlockPool:
                 priority.
         """
         for block in ordered_blocks:
+            logger.info(f"[debug] {self.__class__.__name__}.free_blocks block_id={block}")
             block.decr_ref()
             # null_block should not be added to the free list.
             if block.ref_cnt == 0 and block != self.null_block:

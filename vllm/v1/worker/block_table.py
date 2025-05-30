@@ -20,6 +20,7 @@ class BlockTable:
         pin_memory: bool,
         device: torch.device,
     ):
+        logger.info(f"[debug] {self.__class__.__name__}.__init__")
         self.max_num_reqs = max_num_reqs
         self.max_num_blocks_per_req = max_num_blocks_per_req
         self.max_num_batched_tokens = max_num_batched_tokens

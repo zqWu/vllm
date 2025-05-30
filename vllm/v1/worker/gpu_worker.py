@@ -273,16 +273,13 @@ class Worker(WorkerBase):
         intermediate_tensors = None
         if not get_pp_group().is_first_rank:
             intermediate_tensors = IntermediateTensors(
-                get_pp_group().recv_tensor_dict(
-                    all_gather_group=get_tp_group()))
+                get_pp_group().recv_tensor_dict(all_gather_group=get_tp_group()))
 
-        output = self.model_runner.execute_model(scheduler_output,
-                                                 intermediate_tensors)
+        output = self.model_runner.execute_model(scheduler_output, intermediate_tensors)
 
         if not get_pp_group().is_last_rank:
             assert isinstance(output, IntermediateTensors)
-            get_pp_group().send_tensor_dict(output.tensors,
-                                            all_gather_group=get_tp_group())
+            get_pp_group().send_tensor_dict(output.tensors, all_gather_group=get_tp_group())
             return None
 
         assert isinstance(output, ModelRunnerOutput)

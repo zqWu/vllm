@@ -10,8 +10,7 @@ from vllm.utils import sha256
 from vllm.v1.core.block_pool import BlockPool
 from vllm.v1.core.kv_cache_utils import (BlockHashType, KVCacheBlock,
                                          hash_request_tokens)
-from vllm.v1.core.single_type_kv_cache_manager import (
-    get_manager_for_kv_cache_spec)
+from vllm.v1.core.single_type_kv_cache_manager import get_manager_for_kv_cache_spec
 from vllm.v1.kv_cache_interface import KVCacheConfig
 from vllm.v1.metrics.stats import PrefixCacheStats
 from vllm.v1.request import Request, RequestStatus
@@ -115,8 +114,7 @@ class KVCacheManager:
         self.prefix_cache_stats = PrefixCacheStats()
         return stats
 
-    def get_computed_blocks(self,
-                            request: Request) -> tuple[KVCacheBlocks, int]:
+    def get_computed_blocks(self, request: Request) -> tuple[KVCacheBlocks, int]:
         """Get the computed (cached) blocks for the request.
         Note that the computed blocks must be full.
 
@@ -130,16 +128,14 @@ class KVCacheManager:
         """
         # Prefix caching is disabled or
         # When the request requires prompt logprobs, we skip prefix caching.
-        if (not self.enable_caching
-                or request.sampling_params.prompt_logprobs is not None):
+        if not self.enable_caching or request.sampling_params.prompt_logprobs is not None:
             return KVCacheBlocks.create_empty(), 0
 
         # The block hashes for the request may already be computed
         # if the scheduler has tried to schedule the request before.
         block_hashes = self.req_to_block_hashes[request.request_id]
         if not block_hashes:
-            block_hashes = hash_request_tokens(self.caching_hash_fn,
-                                               self.block_size, request)
+            block_hashes = hash_request_tokens(self.caching_hash_fn, self.block_size, request)
             self.req_to_block_hashes[request.request_id] = block_hashes
 
         if self.log_stats:
@@ -217,7 +213,7 @@ class KVCacheManager:
             raise ValueError("num_new_tokens must be greater than 0")
 
         if new_computed_blocks is not None:
-            new_computed_block_list = new_computed_blocks.blocks
+            new_computed_block_list = new_computed_blocks.blocks  # [ KVCacheBlock, KVCacheBlock, ...]
         else:
             new_computed_block_list = []
 
@@ -227,13 +223,12 @@ class KVCacheManager:
         # insufficient free blocks.
         # Should call this function before allocating new blocks to reduce
         # the number of evicted blocks.
-        self.single_type_manager.remove_skipped_blocks(
-            request.request_id, request.num_computed_tokens)
+        # 只有 slidingwindow attn 才有 remove_skipped_blocks, FullAttention的实现是空操作
+        self.single_type_manager.remove_skipped_blocks(request.request_id, request.num_computed_tokens)
 
         # The number of computed tokens is the number of computed tokens plus
         # the new prefix caching hits
-        num_computed_tokens = (request.num_computed_tokens +
-                               num_new_computed_tokens)
+        num_computed_tokens = request.num_computed_tokens + num_new_computed_tokens
         num_tokens_need_slot = min(
             num_computed_tokens + num_new_tokens + num_lookahead_tokens,
             self.max_model_len)
@@ -243,7 +238,7 @@ class KVCacheManager:
                 num_tokens=num_tokens_need_slot,
                 new_computed_blocks=new_computed_block_list,
             ))
-
+        logger.info(f"[debug] {self.__class__.__name__} 需blocks={num_blocks_to_allocate}个 需slots={num_tokens_need_slot}")
         if num_blocks_to_allocate > self.block_pool.get_num_free_blocks():
             # Cannot allocate new blocks
             return None
@@ -261,8 +256,7 @@ class KVCacheManager:
         self.single_type_manager.save_new_computed_blocks(
             request.request_id, new_computed_block_list)
 
-        new_blocks = self.single_type_manager.allocate_new_blocks(
-            request.request_id, num_tokens_need_slot)
+        new_blocks = self.single_type_manager.allocate_new_blocks(request.request_id, num_tokens_need_slot)
 
         # P/D: delay caching blocks if we have to recv from
         # remote. Update state for locally cached blocks.

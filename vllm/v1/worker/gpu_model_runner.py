@@ -486,8 +486,8 @@ class GPUModelRunner(LoRAModelRunnerMixin):
     def _prepare_inputs(
         self,
         scheduler_output: "SchedulerOutput",
-    ) -> tuple[dict[str, FlashAttentionMetadata], torch.Tensor,
-               Optional[SpecDecodeMetadata]]:
+    ) -> tuple[dict[str, FlashAttentionMetadata], torch.Tensor, Optional[SpecDecodeMetadata]]:
+        logger.info(f"[debug] {self.__class__.__name__}._prepare_inputs")
         total_num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
         assert total_num_scheduled_tokens > 0
         num_reqs = self.input_batch.num_reqs
@@ -505,8 +505,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         # Get request indices.
         # E.g., [2, 5, 3] -> [0, 0, 1, 1, 1, 1, 1, 2, 2, 2]
-        req_indices = np.repeat(self.arange_np[:num_reqs],
-                                num_scheduled_tokens)
+        req_indices = np.repeat(self.arange_np[:num_reqs], num_scheduled_tokens)
 
         # Get batched arange.
         # E.g., [2, 5, 3] -> [0, 1, 0, 1, 2, 3, 4, 0, 1, 2]
@@ -547,11 +546,10 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                            out=self.input_ids_cpu[:total_num_scheduled_tokens])
 
         # Calculate the slot mapping for each KV cache group.
-        for kv_cache_group_id, kv_cache_group_spec in enumerate(
-                self.kv_cache_config.kv_cache_groups):
+        logger.info(f"[debug] {self.__class__.__name__} 处理 BlockTable.slot_mapping")
+        for kv_cache_group_id, kv_cache_group_spec in enumerate(self.kv_cache_config.kv_cache_groups):
             block_size = kv_cache_group_spec.kv_cache_spec.block_size
-            block_table: BlockTable = self.input_batch.block_table[
-                kv_cache_group_id]
+            block_table: BlockTable = self.input_batch.block_table[kv_cache_group_id]
             # E.g., [0, 1, 0, 1, 2, 3, 4, 0, 1, 2]
             # -> [0, 0, K, K, K + 1, K + 1, K + 2, 2 * K, 2 * K, 2 * K + 1]
             # where K is the max_num_blocks_per_req and the block size is 2.
@@ -562,8 +560,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 req_indices * block_table.max_num_blocks_per_req +
                 positions_np // block_size)
             block_table_cpu = block_table.get_cpu_tensor()
-            block_numbers = block_table_cpu.flatten(
-            )[block_table_indices].numpy()
+            block_numbers = block_table_cpu.flatten()[block_table_indices].numpy()
             block_offsets = positions_np % block_size
             np.add(
                 block_numbers * block_size,
@@ -1067,15 +1064,12 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             return self.kv_connector_no_forward(scheduler_output)
 
         # Prepare the decoder inputs.
-        attn_metadata, logits_indices, spec_decode_metadata = (
-            self._prepare_inputs(scheduler_output))
+        attn_metadata, logits_indices, spec_decode_metadata = self._prepare_inputs(scheduler_output)
         num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
-        if (self.use_cuda_graph
-                and num_scheduled_tokens <= self.cudagraph_batch_sizes[-1]):
+        if (self.use_cuda_graph and num_scheduled_tokens <= self.cudagraph_batch_sizes[-1]):
             # Use piecewise CUDA graphs.
             # Add padding to the batch size.
-            num_input_tokens = self.vllm_config.pad_for_cudagraph(
-                num_scheduled_tokens)
+            num_input_tokens = self.vllm_config.pad_for_cudagraph(num_scheduled_tokens)
         else:
             # Eager mode.
             # Pad tokens to multiple of tensor_parallel_size when
@@ -1865,8 +1859,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                         f"{flash_attn_version}.")
 
             block_table_i = self.input_batch.block_table[i]
-            attn_metadata_builder_i = attn_backend_i.get_builder_cls()(
-                weakref.proxy(self), kv_cache_spec, block_table_i)
+            attn_metadata_builder_i = attn_backend_i.get_builder_cls()(weakref.proxy(self), kv_cache_spec, block_table_i)
             self.attn_backends.append(attn_backend_i)
             self.attn_metadata_builders.append(attn_metadata_builder_i)
 

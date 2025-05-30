@@ -128,6 +128,7 @@ class KVCacheBlock:
         self.ref_cnt += 1
 
     def decr_ref(self):
+        logger.info(f"[debug] {self.__class__.__name__}.decr_ref block_id={self.block_id}")
         self.ref_cnt -= 1
 
     @property

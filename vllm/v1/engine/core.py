@@ -137,8 +137,7 @@ class EngineCore:
         assert len(kv_cache_specs) == len(available_gpu_memory)
         # Get the kv cache tensor size
         kv_cache_configs = [
-            get_kv_cache_config(vllm_config, kv_cache_spec_one_worker,
-                                available_gpu_memory_one_worker)
+            get_kv_cache_config(vllm_config, kv_cache_spec_one_worker, available_gpu_memory_one_worker)
             for kv_cache_spec_one_worker, available_gpu_memory_one_worker in
             zip(kv_cache_specs, available_gpu_memory)
         ]
@@ -206,8 +205,7 @@ class EngineCore:
             return self.model_executor.execute_model(scheduler_output)
         except BaseException as err:
             # NOTE: This method is exception-free
-            dump_engine_exception(self.vllm_config, scheduler_output,
-                                  self.scheduler.make_stats())
+            dump_engine_exception(self.vllm_config, scheduler_output, self.scheduler.make_stats())
             # Re-raise exception
             raise err
 
