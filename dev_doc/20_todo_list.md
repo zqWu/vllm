@@ -40,6 +40,12 @@
 - 模型是如何进行加载的: 见流程分析/create_engine.md
 - 模型格式 safetensor / pytorch.bin / ...
 
+- StructuredOutputManager组件是什么, 什么作用
+  - https://www.bentoml.com/blog/structured-decoding-in-vllm-a-gentle-introduction
+
+- Scheduler中有一个 Structured_output_manager, 为什么调度组件中有这样一个 组件
+- 什么是 lookahead token
+
 - 推理日志
 ```
 Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 47.5 tokens/s, Running: 6 reqs, Swapped: 0 reqs, Pending: 0 reqs, GPU KV cache usage: 5.6%, CPU KV cache usage: 0.0%.

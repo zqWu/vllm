@@ -1,3 +1,7 @@
+# APC = automated prefix caching
+# lookahead token (gpt4o - 存疑)
+指当前推理中, 尚未提交到 kv cache的token, 但系统已经为它分配了部分计算资源
+
 # llm sampling 参数
 - temperature = 2: 对于一个非归一化概率,统一 除以温度后, 进行softmax [1.0/t, 3.3/t, 3e2/t, ...]
   - t < 1, 变尖锐, 保守+确定性
