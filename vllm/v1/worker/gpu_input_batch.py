@@ -233,6 +233,7 @@ class InputBatch:
         request: "CachedRequestState",
         req_index: Optional[int] = None,
     ) -> None:
+        print(f"[debug] {self.__class__.__name__} add_request")
         if req_index is None:
             req_index = self.num_reqs
         assert req_index < self.max_num_reqs

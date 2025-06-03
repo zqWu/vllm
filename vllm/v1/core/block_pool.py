@@ -29,10 +29,10 @@ class BlockPool:
     """
 
     def __init__(
-        self,
-        num_gpu_blocks: int,
-        enable_caching: bool,
-        enable_kv_cache_events: bool = False,
+            self,
+            num_gpu_blocks: int,
+            enable_caching: bool,
+            enable_kv_cache_events: bool = False,
     ):
         assert isinstance(num_gpu_blocks, int) and num_gpu_blocks > 0
         self.num_gpu_blocks = num_gpu_blocks
@@ -40,6 +40,7 @@ class BlockPool:
         # All kv-cache blocks.
         logger.info(f"[debug] BlockPool 创建所有 KVCacheBlock, 数量={num_gpu_blocks}")
         self.blocks: list[KVCacheBlock] = [KVCacheBlock(idx) for idx in range(num_gpu_blocks)]
+        self.blocks = self.blocks[100:]  # 丢掉前100个block
         # Free block queue that constructs and manipulates a doubly linked
         # list of free blocks (including eviction candidates when caching is
         # enabled).
@@ -82,14 +83,14 @@ class BlockPool:
         return cached_blocks[first_block_id]
 
     def cache_full_blocks(
-        self,
-        request: Request,
-        blocks: list[KVCacheBlock],
-        block_hashes: list[BlockHashType],
-        num_cached_blocks: int,
-        num_full_blocks: int,
-        block_size: int,
-        hash_fn: Callable,
+            self,
+            request: Request,
+            blocks: list[KVCacheBlock],
+            block_hashes: list[BlockHashType],
+            num_cached_blocks: int,
+            num_full_blocks: int,
+            block_size: int,
+            hash_fn: Callable,
     ) -> None:
         """Cache a list of full blocks for prefix caching.
         This function takes a list of blocks that will have their block hash
@@ -144,7 +145,7 @@ class BlockPool:
                 start_token_idx = blk_idx * block_size
                 end_token_idx = (blk_idx + 1) * block_size
                 block_tokens = request.all_token_ids[
-                    start_token_idx:end_token_idx]
+                               start_token_idx:end_token_idx]
                 assert len(block_tokens) == block_size, (
                     f"Expected {block_size} tokens, got "
                     f"{len(block_tokens)} at {blk_idx}th block for request "
@@ -174,8 +175,8 @@ class BlockPool:
                     block_hashes=new_hashes,
                     parent_block_hash=parent_block_hash,
                     token_ids=request.
-                    all_token_ids[num_cached_blocks *
-                                  block_size:num_full_blocks * block_size],
+                              all_token_ids[num_cached_blocks *
+                                            block_size:num_full_blocks * block_size],
                     block_size=block_size,
                     lora_id=request.lora_request.id
                     if request.lora_request else None,

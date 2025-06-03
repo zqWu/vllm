@@ -31,13 +31,13 @@ def main(args: argparse.Namespace):
         n=1,
         temperature=1,
         top_p=0.95,
-        max_tokens=2
+        max_tokens=999
     )
-    prompt1 = "write a scientific fiction"
+    # 超过 block-size=16, 观察 slot-mapping时的情况
+    prompt1 = "Write an engaging science fiction story about robots living alongside humans on Earth, exploring their conflicts."  # noqa
+    prompt2 = "A dog chases after a rabbit"  # noqa
     engine.add_request("req_id_1", prompt1, sampling_params)
-    request_outputs = engine.step()
-
-    engine.add_request("req_id_2", "Dogs love", sampling_params)
+    engine.add_request("req_id_2", prompt2, sampling_params)
     request_outputs = engine.step()
 
 
@@ -48,6 +48,10 @@ if __name__ == '__main__':
         # f"--gpu_memory_utilization={free_mem_percent - 0.05}",
         f"--gpu_memory_utilization=0.9",
         f"--swap-space=0",  # 禁止 swap到内存上
+        # 使用一些特殊数字, 容易观察
+        f"--max-model-len=33",
+        f"--block-size=16",  # 16的倍数
+        f"--max-num-seqs=5",
     ]
     args = parse_args(mock_cli_str)
     main(args)
