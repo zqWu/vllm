@@ -168,6 +168,8 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         self.use_cuda_graph = (self.vllm_config.compilation_config.level
                                == CompilationLevel.PIECEWISE
                                and not self.model_config.enforce_eager)
+        self.use_cuda_graph = False
+        logger.info(f"[debug] use_cuda_graph={self.use_cuda_graph}")
         # TODO(woosuk): Provide an option to tune the max cudagraph batch size.
         # The convention is different.
         # self.cudagraph_batch_sizes sorts in ascending order.
@@ -488,7 +490,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         self,
         scheduler_output: "SchedulerOutput",
     ) -> tuple[dict[str, FlashAttentionMetadata], torch.Tensor, Optional[SpecDecodeMetadata]]:
-        logger.info(f"[debug] {self.__class__.__name__}._prepare_inputs")
+        logger.info(f"[debug] {self.__class__.__name__}._prepare_inputs, 这里处理 slot_mapping最终状态")
         total_num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
         assert total_num_scheduled_tokens > 0
         num_reqs = self.input_batch.num_reqs
@@ -626,8 +628,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             for layer_name in kv_cache_group_spec.layer_names:
                 attn_metadata[layer_name] = attn_metadata_i
 
-        use_spec_decode = len(
-            scheduler_output.scheduled_spec_decode_tokens) > 0
+        use_spec_decode = len(scheduler_output.scheduled_spec_decode_tokens) > 0
         if not use_spec_decode:
             # NOTE(woosuk): Due to chunked prefills, the batch may contain
             # partial requests. While we should not sample any token
@@ -1061,10 +1062,11 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         # Prepare the decoder inputs.
         attn_metadata, logits_indices, spec_decode_metadata = self._prepare_inputs(scheduler_output)
         num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
-        if (self.use_cuda_graph and num_scheduled_tokens <= self.cudagraph_batch_sizes[-1]):
+        if self.use_cuda_graph and num_scheduled_tokens <= self.cudagraph_batch_sizes[-1]:
             # Use piecewise CUDA graphs.
             # Add padding to the batch size.
             num_input_tokens = self.vllm_config.pad_for_cudagraph(num_scheduled_tokens)
+            logger.info(f"[debug] 使用 cuda_graph, padding input到长度 {num_input_tokens}")
         else:
             # Eager mode.
             # Pad tokens to multiple of tensor_parallel_size when
@@ -1076,7 +1078,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 num_input_tokens = round_up(num_scheduled_tokens, tp_size)
             else:
                 num_input_tokens = num_scheduled_tokens
-
+        logger.info(f"[debug] num_input_tokens={num_input_tokens}")
         # _prepare_inputs may reorder the batch, so we must gather multi
         # modal outputs after that to ensure the correct order
         if self.is_multimodal_model:
@@ -1301,8 +1303,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                         [h[token_indices] for h in aux_hidden_states], dim=-1)
                 else:
                     target_hidden_states = hidden_states[token_indices]
-                target_slot_mapping = eagle_attn_metadata.slot_mapping[
-                    token_indices]
+                target_slot_mapping = eagle_attn_metadata.slot_mapping[token_indices]
 
             draft_token_ids = self.drafter.propose(
                 target_token_ids=target_token_ids,

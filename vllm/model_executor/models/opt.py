@@ -108,6 +108,7 @@ class OPTAttention(nn.Module):
         self,
         hidden_states: torch.Tensor,
     ) -> torch.Tensor:
+        print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
         qkv, _ = self.qkv_proj(hidden_states)
         q, k, v = qkv.chunk(chunks=3, dim=-1)
         attn_output = self.attn(q, k, v)
@@ -163,6 +164,7 @@ class OPTDecoderLayer(nn.Module):
         self,
         hidden_states: torch.Tensor,
     ) -> torch.Tensor:
+        print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
         # Self Attention
         residual = hidden_states
         # 125m, 1.7B, ..., 175B applies layer norm BEFORE attention
@@ -257,6 +259,7 @@ class OPTDecoder(nn.Module):
         intermediate_tensors: Optional[IntermediateTensors],
         inputs_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, IntermediateTensors]:
+        print(f"[debug] {self.__class__.__name__}.forward(4参数)")
         if get_pp_group().is_first_rank:
             if inputs_embeds is None:
                 inputs_embeds = self.get_input_embeddings(input_ids)
@@ -308,6 +311,7 @@ class OPTModel(nn.Module):
         intermediate_tensors: Optional[IntermediateTensors],
         inputs_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, IntermediateTensors]:
+        print(f"[debug] {self.__class__.__name__}.forward(4参数)")
         return self.decoder(input_ids,
                             positions,
                             intermediate_tensors,
@@ -388,8 +392,8 @@ class OPTForCausalLM(nn.Module, SupportsPP):
         intermediate_tensors: Optional[IntermediateTensors] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, IntermediateTensors]:
-        hidden_states = self.model(input_ids, positions, intermediate_tensors,
-                                   inputs_embeds)
+        print(f"[debug] {self.__class__.__name__}.forward(4参数)")
+        hidden_states = self.model(input_ids, positions, intermediate_tensors, inputs_embeds)
         return hidden_states
 
     def compute_logits(

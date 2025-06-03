@@ -38,12 +38,18 @@ def main(args: argparse.Namespace):
     prompt2 = "A dog chases after a rabbit"  # noqa
     engine.add_request("req_id_1", prompt1, sampling_params)
     engine.add_request("req_id_2", prompt2, sampling_params)
+    print(f"[debug] ================ 第一次 step ============= ")
+    os.environ["curr_step_num"] = "1"
+    request_outputs = engine.step()
+    os.environ["curr_step_num"] = "2"
     request_outputs = engine.step()
 
 
 if __name__ == '__main__':
     Utils.print_pid_tid()  # PYDEVD_USE_FRAME_EVAL
     mock_cli_str = [
+
+        f"--enforce-eager",  # 这个模式能debug进源码, 否则 @support_torch_compile 断点进不了
         f"--model={Utils.get_model_path()}",
         # f"--gpu_memory_utilization={free_mem_percent - 0.05}",
         f"--gpu_memory_utilization=0.9",

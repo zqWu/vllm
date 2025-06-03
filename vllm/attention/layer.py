@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Attention layer."""
+import os
 from typing import Any, Dict, List, Optional
 
 import torch
@@ -189,6 +190,7 @@ class Attention(nn.Module):
         context using
         `vllm.forward_context.get_forward_context().attn_metadata`.
         """
+        print(f"[debug] {self.__class__.__name__}.forward(q,k,v)")
         if self.calculate_kv_scales:
             attn_metadata = get_forward_context().attn_metadata
             if attn_metadata.enable_kv_scales_calculation:
@@ -428,6 +430,11 @@ def unified_attention_with_output(
         attn_metadata = attn_metadata[layer_name]
     self = forward_context.no_compile_layers[layer_name]
     kv_cache = self.kv_cache[forward_context.virtual_engine]
+    if layer_name == "model.decoder.layers.0.self_attn.attn":
+        curr_step_num = os.getenv("curr_step_num")
+        if curr_step_num == "1" or curr_step_num == "2":
+            print(f"[debug] {__file__}.unified_attention_with_output 获取 kv_cache")
+            print(f"[debug] 实例kv_cache值: key | block[2] | slot[1] | head[0] = {kv_cache[0,2,1,0,:]}")
     self.impl.forward(self,
                       query,
                       key,
