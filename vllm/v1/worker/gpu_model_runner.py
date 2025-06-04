@@ -562,7 +562,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             np.add(
                 block_numbers * block_size,
                 block_offsets,
-                out=block_table.slot_mapping_np[:total_num_scheduled_tokens])
+                out=block_table.slot_mapping_np[:total_num_scheduled_tokens])  # slot_mapping_np
 
         # Prepare the attention metadata.
         self.query_start_loc_np[0] = 0
@@ -588,8 +588,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         self.query_start_loc[:num_reqs + 1].copy_(
             self.query_start_loc_cpu[:num_reqs + 1], non_blocking=True)
-        self.seq_lens[:num_reqs].copy_(self.seq_lens_cpu[:num_reqs],
-                                       non_blocking=True)
+        self.seq_lens[:num_reqs].copy_(self.seq_lens_cpu[:num_reqs], non_blocking=True)
 
         # Fill unused with -1. Needed for reshape_and_cache
         self.seq_lens[num_reqs:].fill_(0)
@@ -598,14 +597,12 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         query_start_loc = self.query_start_loc[:num_reqs + 1]
         seq_lens = self.seq_lens[:num_reqs]
 
-        common_attn_metadata = CommonAttentionMetadata(
-            query_start_loc=query_start_loc, seq_lens=seq_lens)
+        common_attn_metadata = CommonAttentionMetadata(query_start_loc=query_start_loc, seq_lens=seq_lens)
 
         attn_metadata: dict[str, FlashAttentionMetadata] = {}
         # Prepare the attention metadata for each KV cache group and make layers
         # in the same group share the same metadata.
-        for kv_cache_group_id, kv_cache_group_spec in enumerate(
-                self.kv_cache_config.kv_cache_groups):
+        for kv_cache_group_id, kv_cache_group_spec in enumerate(self.kv_cache_config.kv_cache_groups):
 
             # Prepare for cascade attention if enabled & beneficial.
             common_prefix_len = 0
@@ -753,17 +750,13 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             req = self.requests[req_id]
             assert req.mrope_positions is not None
 
-            num_computed_tokens = \
-                self.input_batch.num_computed_tokens_cpu[index]
-            num_scheduled_tokens = \
-                scheduler_output.num_scheduled_tokens[req_id]
+            num_computed_tokens = self.input_batch.num_computed_tokens_cpu[index]
+            num_scheduled_tokens = scheduler_output.num_scheduled_tokens[req_id]
             num_prompt_tokens = len(req.prompt_token_ids)
 
             if num_computed_tokens + num_scheduled_tokens > num_prompt_tokens:
-                prompt_part_len = max(0,
-                                      num_prompt_tokens - num_computed_tokens)
-                completion_part_len = max(
-                    0, num_scheduled_tokens - prompt_part_len)
+                prompt_part_len = max(0, num_prompt_tokens - num_computed_tokens)
+                completion_part_len = max(0, num_scheduled_tokens - prompt_part_len)
             else:
                 prompt_part_len = num_scheduled_tokens
                 completion_part_len = 0
@@ -777,8 +770,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 src_start = num_computed_tokens
                 src_end = num_computed_tokens + prompt_part_len
 
-                self.mrope_positions_cpu[:, dst_start:dst_end] = \
-                    req.mrope_positions[:,src_start:src_end]
+                self.mrope_positions_cpu[:, dst_start:dst_end] = req.mrope_positions[:, src_start:src_end]
 
                 mrope_pos_ptr += prompt_part_len
 

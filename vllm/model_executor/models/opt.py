@@ -108,7 +108,9 @@ class OPTAttention(nn.Module):
         self,
         hidden_states: torch.Tensor,
     ) -> torch.Tensor:
-        print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
+        import os
+        if os.getenv("curr_layer_num") == "0":
+            print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
         qkv, _ = self.qkv_proj(hidden_states)
         q, k, v = qkv.chunk(chunks=3, dim=-1)
         attn_output = self.attn(q, k, v)
@@ -164,7 +166,9 @@ class OPTDecoderLayer(nn.Module):
         self,
         hidden_states: torch.Tensor,
     ) -> torch.Tensor:
-        print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
+        import os
+        if os.getenv("curr_layer_num") == "0":
+            print(f"[debug] {self.__class__.__name__}.forward(hidden_state)")
         # Self Attention
         residual = hidden_states
         # 125m, 1.7B, ..., 175B applies layer norm BEFORE attention
@@ -271,7 +275,9 @@ class OPTDecoder(nn.Module):
             assert intermediate_tensors is not None
             hidden_states = intermediate_tensors["hidden_states"]
 
-        for layer in self.layers[self.start_layer:self.end_layer]:
+        import os
+        for layer_num, layer in enumerate(self.layers[self.start_layer:self.end_layer]):
+            os.environ["curr_layer_num"] = str(layer_num)
             hidden_states = layer(hidden_states)
 
         if not get_pp_group().is_last_rank:

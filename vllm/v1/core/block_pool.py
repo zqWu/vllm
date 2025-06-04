@@ -40,7 +40,7 @@ class BlockPool:
         # All kv-cache blocks.
         logger.info(f"[debug] BlockPool 创建所有 KVCacheBlock, 数量={num_gpu_blocks}")
         self.blocks: list[KVCacheBlock] = [KVCacheBlock(idx) for idx in range(num_gpu_blocks)]
-        self.blocks = self.blocks[1:]  # 丢掉前100个block
+        self.blocks = self.blocks[1:]  # <================== 丢掉前 N 个block
         logger.info(f"[debug] {self.__class__.__name__} 测试:丢弃前1个 KVCacheBlock")
         # Free block queue that constructs and manipulates a doubly linked
         # list of free blocks (including eviction candidates when caching is

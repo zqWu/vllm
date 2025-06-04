@@ -38,9 +38,11 @@ def main(args: argparse.Namespace):
     prompt2 = "A dog chases after a rabbit"  # noqa
     engine.add_request("req_id_1", prompt1, sampling_params)
     engine.add_request("req_id_2", prompt2, sampling_params)
-    print(f"[debug] ================ 第一次 step ============= ")
+    print(f"[debug] ================ curr_step_num:1 ============= ")
     os.environ["curr_step_num"] = "1"
     request_outputs = engine.step()
+
+    print(f"[debug] ================ curr_step_num:2 ============= ")
     os.environ["curr_step_num"] = "2"
     request_outputs = engine.step()
 

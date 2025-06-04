@@ -332,6 +332,7 @@ class FlashAttentionMetadataBuilder:
         block_table = self.block_table
         block_table_tensor = block_table.get_device_tensor()[:num_reqs]
 
+        logger.info(f"[debug] {self.__class__.__name__}.build 中设置 block_table.slot_mapping")
         block_table.slot_mapping[:num_actual_tokens].copy_(
             block_table.slot_mapping_cpu[:num_actual_tokens],
             non_blocking=True)
@@ -559,7 +560,6 @@ class FlashAttentionImpl(AttentionImpl):
             # Profiling run.
             return output
 
-        logger.info(f"[debug] {self.__class__.__name__}.forward")
 
         # IMPORTANT!
         # NOTE(woosuk): With piece-wise CUDA graphs, this method is executed in
@@ -577,6 +577,25 @@ class FlashAttentionImpl(AttentionImpl):
         # value[:num_actual_tokens] because the reshape_and_cache_flash op uses
         # the slot_mapping's shape to determine the number of actual tokens.
         key_cache, value_cache = kv_cache.unbind(0)
+        # tensor.unbind(dim) = 将一个tensor在 dim 维度进行拆分
+        # ===============================================================================
+        # block=0是特殊 block, block=1 我手动屏蔽了(见 block_pool.py)
+        # 在 debug中, req_id_1 使用 blocks=[2,3], 有19个token
+        # 在 debug中, req_id_2 使用 blocks=[4],   有8 个token
+        # 第1次 forward(prefill)前, 没有 cache, 因此 req_id_1: bloc[3]_slot[2] = 空
+        # 第1次 forward(prefill)后, 这些内容塞入 kv_cache, 因此 req_id_1: block[3]_slot[2] = 有值, 对应19th token的key
+        # 第2次 forward(decode) 前, req_id_2: block[4]_slot[8] = 空
+        # 第2次 forward(decode) 后, req_id_2: block[4]_slot[8] 有值, req_id_2 在第一次 forward生成的token的key
+        # ===============================================================================
+        import os
+        curr_step_num = os.getenv("curr_step_num")
+        if os.getenv("curr_layer_num") == "0":
+            logger.info(f"[debug] {self.__class__.__name__}.forward")
+
+            if curr_step_num == "1":
+                print(f"[debug] curr_step_num={curr_step_num}. 存储之前 key_cache[3,2,0,:3]={key_cache[3,2,0,:3]}")
+            if curr_step_num == "2":
+                print(f"[debug] curr_step_num={curr_step_num}. 存储之前 key_cache[4,8,0,:3]={key_cache[4,8,0,:3]}")
         torch.ops._C_cache_ops.reshape_and_cache_flash(
             key,
             value,
@@ -587,7 +606,11 @@ class FlashAttentionImpl(AttentionImpl):
             layer._k_scale,
             layer._v_scale,
         )
-
+        if os.getenv("curr_layer_num") == "0":
+            if curr_step_num == "1":
+                print(f"[debug] curr_step_num={curr_step_num}. 存储之后 key_cache[3,2,0,:3]={key_cache[3,2,0,:3]}")
+            if curr_step_num == "2":
+                print(f"[debug] curr_step_num={curr_step_num}. 存储之前 key_cache[4,8,0,:3]={key_cache[4,8,0,:3]}")
         if self.kv_cache_dtype.startswith("fp8"):
             key_cache = key_cache.view(torch.float8_e4m3fn)
             value_cache = value_cache.view(torch.float8_e4m3fn)

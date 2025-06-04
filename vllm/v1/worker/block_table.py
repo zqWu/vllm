@@ -45,7 +45,7 @@ class BlockTable:
                                             dtype=torch.int64,
                                             device="cpu",
                                             pin_memory=self.pin_memory)
-        self.slot_mapping_np = self.slot_mapping_cpu.numpy()
+        self.slot_mapping_np = self.slot_mapping_cpu.numpy()  # slot_mapping_cpu 和 slot_mapping_np 是一致的
         self.slot_mapping = torch.zeros(self.max_num_batched_tokens,
                                         dtype=torch.int64,
                                         device=self.device)
