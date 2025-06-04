@@ -28,5 +28,6 @@ if __name__ == "__main__":
     args = parser.parse_args(mock_cli_str)
     validate_parsed_serve_args(args)
 
-    uvloop.run(run_server(args))
-    "python vllm/entrypoints/openai/api_server.py --model [模型路径] [其他参数]"
+    import asyncio
+    asyncio.run(run_server(args))
+    # uvloop.run(run_server(args)) # uvloop debug会出错, 换成 asyncio
