@@ -71,3 +71,37 @@ class FlashAttentionImpl(AttentionImpl):
 		)
 #
 ```
+
+# k_cache的使用
+在 flash_attn.py 的 FlashAttentionBackendImpl中，
+flash_attn_varlen_func方法参数传递了 k_cache, 和 block_table, 
+
+为什么不需要 slot_mapping这个参数？
+block_table中并不是所有的 slot都是有效k_cache, 有些位置还空着未占用
+
+## 回答
+见 kv_cache_使用2.png
+seqused_k 来源是调度时进行的计算，放到 attn_metadata中了
+```python
+flash_attn_varlen_func(
+                q=query[:num_actual_tokens],
+                k=key_cache, <===================== 整块内存
+                v=value_cache,
+                out=output[:num_actual_tokens],
+                cu_seqlens_q=cu_seqlens_q,
+                max_seqlen_q=max_seqlen_q,
+                seqused_k=seqused_k, <============= seq长度, 如  [19, 8]
+                max_seqlen_k=max_seqlen_k,
+                softmax_scale=self.scale,
+                causal=True,
+                alibi_slopes=self.alibi_slopes,
+                window_size=self.sliding_window,
+                block_table=block_table, <========= 整块内存中使用了哪些 block, 如  [[2,3,0], [4,0,0]]
+                softcap=self.logits_soft_cap,
+                scheduler_metadata=attn_metadata.scheduler_metadata,
+                fa_version=self.vllm_flash_attn_version,
+                q_descale=layer._q_scale.expand(descale_shape),
+                k_descale=layer._k_scale.expand(descale_shape),
+                v_descale=layer._v_scale.expand(descale_shape),
+            )
+```

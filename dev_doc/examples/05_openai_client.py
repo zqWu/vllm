@@ -58,6 +58,7 @@ def demo_tools():
         {"role": "system",
          "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.\n\nCurrent Date: 2024-09-30"},
         {"role": "user", "content": "What's the temperature in BeiJing now? How about tomorrow?"},
+        # {"role": "user", "content": "What's the temperature in BeiJing now? "},
     ]
     return MESSAGES, TOOLS
 
@@ -100,5 +101,5 @@ def _test_fc():
 
 
 if __name__ == "__main__":
-    _check_llm_ok()
+    # _check_llm_ok()
     _test_fc()

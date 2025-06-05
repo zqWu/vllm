@@ -34,6 +34,8 @@ chunk 2: tokens [C, 2C)
 chunk k: tokens [k*C, N)
 ```
 - 对于每个 chunk，执行一次 forward
+  - TODO, 这里forward 应该有相互依赖关系
+
 
 
 # 为什么需要 chunked prefill？
