@@ -152,6 +152,7 @@ class OpenAIServingChat(OpenAIServing):
             tokenizer = await self.engine_client.get_tokenizer(lora_request)
 
             tool_parser = self.tool_parser
+            # tool_parser: <class 'vllm.entrypoints.openai.tool_parsers.hermes_tool_parser.Hermes2ProToolParser'>
 
             if isinstance(tokenizer, MistralTokenizer):
                 # because of issues with pydantic we need to potentially
@@ -199,8 +200,7 @@ class OpenAIServingChat(OpenAIServing):
             logger.exception("Error in preprocessing prompt inputs")
             return self.create_error_response(f"{e} {e.__cause__}")
 
-        request_id = "chatcmpl-" \
-                     f"{self._base_request_id(raw_request, request.request_id)}"
+        request_id = f"chatcmpl-{self._base_request_id(raw_request, request.request_id)}"
 
         request_metadata = RequestResponseMetadata(request_id=request_id)
         if raw_request:
@@ -211,11 +211,9 @@ class OpenAIServingChat(OpenAIServing):
         try:
             for i, engine_prompt in enumerate(engine_prompts):
                 sampling_params: Union[SamplingParams, BeamSearchParams]
-                default_max_tokens = self.max_model_len - len(
-                    engine_prompt["prompt_token_ids"])
+                default_max_tokens = self.max_model_len - len(engine_prompt["prompt_token_ids"])
                 if request.use_beam_search:
-                    sampling_params = request.to_beam_search_params(
-                        default_max_tokens, self.default_sampling_params)
+                    sampling_params = request.to_beam_search_params(default_max_tokens, self.default_sampling_params)
                 else:
                     sampling_params = request.to_sampling_params(
                         default_max_tokens,
@@ -897,12 +895,13 @@ class OpenAIServingChat(OpenAIServing):
         tokenizer: AnyTokenizer,
         request_metadata: RequestResponseMetadata,
     ) -> Union[ErrorResponse, ChatCompletionResponse]:
-
+        logger.info(f"[debug] {self.__class__.__name__} chat_completion_full_generator")
         created_time = int(time.time())
         final_res: Optional[RequestOutput] = None
 
         try:
             async for res in result_generator:
+                logger.info(f"[debug] {self.__class__.__name__} 得到大模型输出结果")
                 final_res = res
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")

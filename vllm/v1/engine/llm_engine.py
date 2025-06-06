@@ -208,8 +208,7 @@ class LLMEngine:
             child_request.sampling_params = params
 
             # Make a new RequestState and queue.
-            self.output_processor.add_request(child_request, prompt_str,
-                                              parent_req, idx)
+            self.output_processor.add_request(child_request, prompt_str, parent_req, idx)
             # Add the request to EngineCore.
             self.engine_core.add_request(child_request)
 
@@ -222,10 +221,12 @@ class LLMEngine:
 
         # 1) Get EngineCoreOutput from the EngineCore.
         outputs = self.engine_core.get_output()
+        # 主要结构 outputs.outputs[0]
+        # EngineCoreOutput(req_id="req_id_1", new_token_ids=[280], stop_reason=None,...)
+        # sampling 在 engine_core.get_output()中已经完成
 
         # 2) Process EngineCoreOutputs.
-        processed_outputs = self.output_processor.process_outputs(
-            outputs.outputs)
+        processed_outputs = self.output_processor.process_outputs(outputs.outputs)
 
         # 3) Abort any reqs that finished due to stop strings.
         self.engine_core.abort_requests(processed_outputs.reqs_to_abort)

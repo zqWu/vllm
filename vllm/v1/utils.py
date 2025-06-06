@@ -231,6 +231,7 @@ def bind_kv_cache(
         layer_name = layer_names[0]
         runner_kv_caches.append(kv_caches[layer_name])
 
+    logger.info(f"[debug] {__file__} bind_kv_cache: 为每个attn层分配 对应的kv_cache tensor")
     # Bind kv_caches to forward context
     for layer_name, kv_cache in kv_caches.items():
         # NOTE: Use list because of v0 PP virtual engine.

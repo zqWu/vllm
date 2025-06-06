@@ -26,8 +26,8 @@ class NewRequestData:
     mm_hashes: list[str]
     mm_positions: list[PlaceholderRange]
     sampling_params: SamplingParams
-    block_ids: list[list[int]]
-    num_computed_tokens: int
+    block_ids: list[list[int]]  # 为什么不是 list[int]? 支持多个 group
+    num_computed_tokens: int  # 被调度时, 需要计算该 req的token数量
     lora_request: Optional[LoRARequest]
 
     @classmethod
@@ -78,6 +78,9 @@ class NewRequestData:
 
 @dataclass
 class CachedRequestData:
+    # 设计的核心是 增量传输
+    # 少的一些字段, 已经在 worker中缓存, 因此不必再次发送这部分数据
+    # 见 gpu_model_runner.py:351
 
     req_id: str
     # If resumed_from_preemption is False, new_block_ids will be appended to

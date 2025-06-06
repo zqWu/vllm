@@ -333,9 +333,7 @@ class OutputProcessor:
                 continue
 
             # 1) Compute stats for this iteration.
-            self._update_stats_from_output(req_state, engine_core_output,
-                                           engine_core_timestamp,
-                                           iteration_stats)
+            self._update_stats_from_output(req_state, engine_core_output, engine_core_timestamp, iteration_stats)
 
             new_token_ids = engine_core_output.new_token_ids
             finish_reason = engine_core_output.finish_reason
@@ -345,8 +343,7 @@ class OutputProcessor:
             req_state.is_prefilling = False
 
             # 2) Detokenize the token ids into text and perform stop checks.
-            stop_string = req_state.detokenizer.update(
-                new_token_ids, finish_reason == FinishReason.STOP)
+            stop_string = req_state.detokenizer.update(new_token_ids, finish_reason == FinishReason.STOP)
             if stop_string:
                 finish_reason = FinishReason.STOP
                 stop_reason = stop_string
@@ -355,9 +352,7 @@ class OutputProcessor:
             req_state.logprobs_processor.update_from_output(engine_core_output)
 
             # 4) Create and handle RequestOutput objects.
-            if request_output := req_state.make_request_output(
-                    new_token_ids, finish_reason, stop_reason,
-                    kv_transfer_params):
+            if request_output := req_state.make_request_output(new_token_ids, finish_reason, stop_reason, kv_transfer_params):
                 if req_state.queue is not None:
                     # AsyncLLM: put into queue for handling by generate().
                     req_state.queue.put(request_output)
@@ -378,15 +373,11 @@ class OutputProcessor:
                     reqs_to_abort.append(req_id)
 
                 # Track per-request stats
-                self._update_stats_from_finished(req_state, finish_reason,
-                                                 iteration_stats)
+                self._update_stats_from_finished(req_state, finish_reason, iteration_stats)
 
         self.lora_states.update_iteration_stats(iteration_stats)
 
-        return OutputProcessorOutput(
-            request_outputs=request_outputs,
-            reqs_to_abort=reqs_to_abort,
-        )
+        return OutputProcessorOutput(request_outputs=request_outputs, reqs_to_abort=reqs_to_abort,)
 
     def _update_stats_from_output(self, req_state: RequestState,
                                   engine_core_output: EngineCoreOutput,

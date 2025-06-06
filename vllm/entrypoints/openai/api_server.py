@@ -549,8 +549,8 @@ async def show_version():
              })
 @with_cancellation
 @load_aware_call
-async def create_chat_completion(request: ChatCompletionRequest,
-                                 raw_request: Request):
+async def create_chat_completion(request: ChatCompletionRequest, raw_request: Request):
+    logger.info(f"[debug] {__file__} create_chat_completion")
     handler = chat(raw_request)
     if handler is None:
         return base(raw_request).create_error_response(

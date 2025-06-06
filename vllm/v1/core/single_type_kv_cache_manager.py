@@ -144,6 +144,7 @@ class SingleTypeKVCacheManager(ABC):
             num_tokens: The total number of tokens that need to be cached 
                 (including tokens that are already cached).
         """
+        print(f"[debug] {self.__class__.__name__}.cache_blocks")
         num_cached_blocks = self.num_cached_block[request.request_id]
         num_full_blocks = num_tokens // self.block_size
 

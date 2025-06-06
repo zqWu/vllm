@@ -150,8 +150,9 @@ class KVCacheManager:
         # could slightly improve performance in the future.
         max_cache_hit_length = request.num_tokens - 1
 
-        computed_blocks = self.single_type_manager.find_longest_cache_hit(
-            block_hashes, max_cache_hit_length)
+        computed_blocks = self.single_type_manager.find_longest_cache_hit(block_hashes, max_cache_hit_length)
+        if computed_blocks:
+            logger.info(f"[debug] 命中 block cache, 数量={len(computed_blocks)} ")
         # NOTE(woosuk): Since incomplete blocks are not eligible for
         # sharing, `num_computed_tokens` is always a multiple of
         # `block_size`.
@@ -180,13 +181,10 @@ class KVCacheManager:
             num_new_tokens: The number of tokens to allocate, including external
                 tokens. Note that this does not include tokens that have
                 already been computed locally (i.e. new_computed_blocks).
-            num_new_computed_tokens: The number of new computed tokens just
-                hitting the prefix caching, excluding external tokens.
-            new_computed_blocks: The cached blocks for the above new computed 
-                tokens.
+            num_new_computed_tokens: The number of new computed tokens just hitting the prefix caching, excluding external tokens.
+            new_computed_blocks: The cached blocks for the above new computed  tokens.
             num_lookahead_tokens: The number of speculative tokens to allocate.
-                This is used by spec decode proposers with kv-cache such 
-                as eagle.
+                This is used by spec decode proposers with kv-cache such as eagle.
             delay_cache_blocks: Whether to skip caching the blocks. This is
                 used by P/D when allocating blocks used in a KV transfer
                 which will complete in a future step.
@@ -229,9 +227,7 @@ class KVCacheManager:
         # The number of computed tokens is the number of computed tokens plus
         # the new prefix caching hits
         num_computed_tokens = request.num_computed_tokens + num_new_computed_tokens
-        num_tokens_need_slot = min(
-            num_computed_tokens + num_new_tokens + num_lookahead_tokens,
-            self.max_model_len)
+        num_tokens_need_slot = min(num_computed_tokens + num_new_tokens + num_lookahead_tokens, self.max_model_len)
         num_blocks_to_allocate = (
             self.single_type_manager.get_num_blocks_to_allocate(
                 request_id=request.request_id,

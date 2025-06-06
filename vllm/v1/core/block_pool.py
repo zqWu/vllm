@@ -107,8 +107,7 @@ class BlockPool:
             this list may be shorter than the blocks list. In this case the
             missed block hash will be computed in this function.
             num_cached_blocks: The number of blocks that are already cached.
-            num_full_blocks: The number of blocks that are full and should
-                be cached after this function.
+            num_full_blocks: The number of blocks that are full and should be cached after this function.
             block_size: Number of tokens in each block.
             hash_fn: The hash function to use for block hashes.
         """
@@ -145,8 +144,7 @@ class BlockPool:
                 blk_idx = num_cached_blocks + i
                 start_token_idx = blk_idx * block_size
                 end_token_idx = (blk_idx + 1) * block_size
-                block_tokens = request.all_token_ids[
-                               start_token_idx:end_token_idx]
+                block_tokens = request.all_token_ids[start_token_idx:end_token_idx]
                 assert len(block_tokens) == block_size, (
                     f"Expected {block_size} tokens, got "
                     f"{len(block_tokens)} at {blk_idx}th block for request "
@@ -155,12 +153,10 @@ class BlockPool:
                 # Generate extra keys for multi-modal inputs. Note that since
                 # we reach to this branch only when the block is completed with
                 # generated tokens, we only need to consider the last mm input.
-                extra_keys, _ = generate_block_hash_extra_keys(
-                    request, start_token_idx, end_token_idx, -1)
+                extra_keys, _ = generate_block_hash_extra_keys(request, start_token_idx, end_token_idx, -1)
 
                 # Compute the hash of the current block.
-                block_hash = hash_block_tokens(hash_fn, prev_block_hash_value,
-                                               block_tokens, extra_keys)
+                block_hash = hash_block_tokens(hash_fn, prev_block_hash_value, block_tokens, extra_keys)
                 block_hashes.append(block_hash)
 
             # Update and added the full block to the cache.

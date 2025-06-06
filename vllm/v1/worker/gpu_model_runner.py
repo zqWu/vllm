@@ -347,11 +347,12 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 generator.manual_seed(sampling_params.seed)
             else:
                 generator = None
-
+            # 这里对 request 进行 cache
+            logger.info(f"[debug] {self.__class__.__name__} 对request进行了 cache")
             self.requests[req_id] = CachedRequestState(
                 req_id=req_id,
-                prompt_token_ids=new_req_data.prompt_token_ids,
-                mm_inputs=new_req_data.mm_inputs,
+                prompt_token_ids=new_req_data.prompt_token_ids,  # 这个数据库可能较大
+                mm_inputs=new_req_data.mm_inputs,  # 数据量也可能较大
                 mm_positions=new_req_data.mm_positions,
                 sampling_params=sampling_params,
                 generator=generator,
@@ -879,8 +880,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
             for mm_input_id in encoder_input_ids:
                 mm_inputs.append(req_state.mm_inputs[mm_input_id])
-                req_ids_pos.append(
-                    (req_id, mm_input_id, req_state.mm_positions[mm_input_id]))
+                req_ids_pos.append((req_id, mm_input_id, req_state.mm_positions[mm_input_id]))
 
         # Batch mm inputs as much as we can: if a request in the batch has
         # multiple modalities or a different modality than the previous one,
@@ -894,8 +894,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         encoder_outputs = []
         for grouped_mm_inputs in grouped_mm_inputs_list:
             batched_mm_inputs = MultiModalKwargs.batch(grouped_mm_inputs)
-            batched_mm_inputs = MultiModalKwargs.as_kwargs(batched_mm_inputs,
-                                                           device=self.device)
+            batched_mm_inputs = MultiModalKwargs.as_kwargs(batched_mm_inputs, device=self.device)
 
             # Run the encoder.
             # `curr_group_outputs` is either of the following:
@@ -904,29 +903,19 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             # 2. A list or tuple (length: num_items) of tensors, each of shape
             # (feature_size, hidden_size) in case the feature size is dynamic
             # depending on the input multimodal items.
-            curr_group_outputs = self.model.get_multimodal_embeddings(
-                **batched_mm_inputs)
+            curr_group_outputs = self.model.get_multimodal_embeddings(**batched_mm_inputs)
 
-            sanity_check_mm_encoder_outputs(
-                curr_group_outputs,
-                expected_num_items=len(grouped_mm_inputs),
-            )
+            sanity_check_mm_encoder_outputs(curr_group_outputs, expected_num_items=len(grouped_mm_inputs),)
 
             for output in curr_group_outputs:
                 encoder_outputs.append(output)
 
         # Cache the encoder outputs.
-        for (req_id, input_id, pos_info), output in zip(
-                req_ids_pos,
-                encoder_outputs,
-        ):
+        for (req_id, input_id, pos_info), output in zip(req_ids_pos, encoder_outputs,):
             if req_id not in self.encoder_cache:
                 self.encoder_cache[req_id] = {}
 
-            self.encoder_cache[req_id][input_id] = scatter_mm_placeholders(
-                output,
-                is_embed=pos_info.is_embed,
-            )
+            self.encoder_cache[req_id][input_id] = scatter_mm_placeholders(output, is_embed=pos_info.is_embed,)
 
     def _gather_mm_embeddings(
         self,
@@ -1009,9 +998,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         out_indices = []
 
         # Reorder the bitmask to match the order of the requests in the batch.
-        sorted_bitmask = np.zeros_like(grammar_bitmask,
-                                       shape=(logits.shape[0],
-                                              grammar_bitmask.shape[1]))
+        sorted_bitmask = np.zeros_like(grammar_bitmask, shape=(logits.shape[0],grammar_bitmask.shape[1]))
         cumulative_index = 0
         seq = sorted(scheduler_output.structured_output_request_ids.items(),
                      key=lambda x: x[1])
@@ -1064,8 +1051,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             # Pad tokens to multiple of tensor_parallel_size when
             # enabled collective fusion for SP
             tp_size = self.vllm_config.parallel_config.tensor_parallel_size
-            if self.vllm_config.compilation_config.pass_config. \
-                enable_sequence_parallelism and tp_size > 1:
+            if self.vllm_config.compilation_config.pass_config.enable_sequence_parallelism and tp_size > 1:
                 from vllm.utils import round_up
                 num_input_tokens = round_up(num_scheduled_tokens, tp_size)
             else:
@@ -1086,8 +1072,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             # as input to the multimodal model, even when the input is text.
             input_ids = self.input_ids[:num_scheduled_tokens]
             if mm_embeds:
-                inputs_embeds = self.model.get_input_embeddings(
-                    input_ids, mm_embeds)
+                inputs_embeds = self.model.get_input_embeddings(input_ids, mm_embeds)
             else:
                 inputs_embeds = self.model.get_input_embeddings(input_ids)
             # TODO(woosuk): Avoid the copy. Optimize.
@@ -1121,9 +1106,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         # Run the decoder.
         # Use persistent buffers for CUDA graphs.
-        with set_forward_context(attn_metadata,
-                                 self.vllm_config,
-                                 num_tokens=num_input_tokens):
+        with set_forward_context(attn_metadata, self.vllm_config, num_tokens=num_input_tokens):
             self.maybe_setup_kv_connector(scheduler_output)
 
             model_output = self.model(
@@ -1134,8 +1117,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             )
 
             self.maybe_wait_for_kv_save()
-            finished_sending, finished_recving = (
-                self.get_finished_kv_transfers(scheduler_output))
+            finished_sending, finished_recving = self.get_finished_kv_transfers(scheduler_output)
 
         if self.use_aux_hidden_state_outputs:
             hidden_states, aux_hidden_states = model_output
@@ -1156,10 +1138,8 @@ class GPUModelRunner(LoRAModelRunnerMixin):
         # Sample the next token and get logprobs if needed.
         sampling_metadata = self.input_batch.sampling_metadata
         if spec_decode_metadata is None:
-            sampler_output = self.sampler(
-                logits=logits,
-                sampling_metadata=sampling_metadata,
-            )
+            logger.info(f"[debug] {self.__class__.__name__} 开始进行 sample")
+            sampler_output = self.sampler(logits=logits, sampling_metadata=sampling_metadata,)
         else:
             # When indexing with a tensor (bonus_logits_indices), PyTorch
             # creates a new tensor with separate storage from the original
@@ -1891,10 +1871,8 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                         num_blocks, kv_cache_spec.block_size,
                         kv_cache_spec.num_kv_heads, kv_cache_spec.head_size)
                     dtype = kv_cache_spec.dtype
-                    logger.info(f"[debug] {self.__class__.__name__} 初始化 {layer_name} 的 kv_cache")
-                    kv_caches[layer_name] = torch.zeros(kv_cache_shape,
-                                                        dtype=dtype,
-                                                        device=self.device)
+                    logger.info(f"[debug] {self.__class__.__name__} 初始化 {layer_name} 的 kv_cache, shape={kv_cache_shape}")
+                    kv_caches[layer_name] = torch.zeros(kv_cache_shape, dtype=dtype, device=self.device)
                 else:
                     # TODO: add new branches when introducing more types of
                     # KV cache specs.

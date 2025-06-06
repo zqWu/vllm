@@ -665,8 +665,7 @@ class OpenAIServing:
         tool_parser: Optional[Callable[[AnyTokenizer], ToolParser]] = None,
         truncate_prompt_tokens: Optional[Annotated[int, Field(ge=1)]] = None,
         add_special_tokens: bool = False,
-    ) -> tuple[list[ConversationMessage], Sequence[RequestPrompt],
-               list[TokensPrompt]]:
+    ) -> tuple[list[ConversationMessage], Sequence[RequestPrompt], list[TokensPrompt]]:
         model_config = self.model_config
 
         resolved_content_format = resolve_chat_template_content_format(
@@ -733,8 +732,7 @@ class OpenAIServing:
             )
         else:
             # For MistralTokenizer
-            assert is_list_of(request_prompt, int), (
-                "Prompt has to be either a string or a list of token ids")
+            assert is_list_of(request_prompt, int), ("Prompt has to be either a string or a list of token ids")
             prompt_inputs = TextTokensPrompt(
                 prompt=tokenizer.decode(request_prompt),
                 prompt_token_ids=request_prompt)

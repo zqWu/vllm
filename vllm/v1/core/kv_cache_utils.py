@@ -406,10 +406,8 @@ def hash_block_tokens(
     hash values for the same block contents.
 
     Args:
-        parent_block_hash: The hash of the parent block. None
-            if this is the first block.
-        curr_block_token_ids: A list of token ids in the current
-            block. The current block is assumed to be full.
+        parent_block_hash: The hash of the parent block. None if this is the first block.
+        curr_block_token_ids: A list of token ids in the current block. The current block is assumed to be full.
         extra_keys: Extra keys for the block.
 
     Returns:

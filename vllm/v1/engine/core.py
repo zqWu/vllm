@@ -214,16 +214,19 @@ class EngineCore:
 
         # Check for any requests remaining in the scheduler - unfinished,
         # or finished and not yet removed from the batch.
-        logger.info(f"[debug] {self.__class__.__name__}.step")
+        logger.info(f"[debug] {self.__class__.__name__}.step 进行调度 -> 模型执行 -> 更新调动")
         if not self.scheduler.has_requests():
             return EngineCoreOutputs(
                 outputs=[],
                 scheduler_stats=self.scheduler.make_stats(),
             )
+        # 进行调度 -> 模型执行 -> 更新调动
+        import os
+        if os.getenv("curr_step_num") is not None:
+            pass
         scheduler_output = self.scheduler.schedule()
         model_output = self.execute_model(scheduler_output)
-        engine_core_outputs = self.scheduler.update_from_output(
-            scheduler_output, model_output)  # type: ignore
+        engine_core_outputs = self.scheduler.update_from_output(scheduler_output, model_output)
 
         return engine_core_outputs
 

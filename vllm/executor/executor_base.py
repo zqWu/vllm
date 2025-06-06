@@ -139,8 +139,7 @@ class ExecutorBase(ABC):
         self, execute_model_req: ExecuteModelRequest
     ) -> Optional[List[Union[SamplerOutput, PoolerOutput]]]:
         logger.info(f"[debug] {self.__class__.__name__}.execute_model")
-        output = self.collective_rpc("execute_model",
-                                     args=(execute_model_req, ))
+        output = self.collective_rpc("execute_model", args=(execute_model_req, ))
         return output[0]
 
     def stop_remote_worker_execution_loop(self) -> None:

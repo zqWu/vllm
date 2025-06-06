@@ -33,11 +33,14 @@ def main(args: argparse.Namespace):
         top_p=0.95,
         max_tokens=999
     )
-    # 超过 block-size=16, 观察 slot-mapping时的情况
-    prompt1 = "Write an engaging science fiction story about robots living alongside humans on Earth, exploring their conflicts."  # noqa
-    prompt2 = "A dog chases after a rabbit"  # noqa
-    engine.add_request("req_id_1", prompt1, sampling_params)
-    engine.add_request("req_id_2", prompt2, sampling_params)
+    # 超过 block-size=16, 观察 prefix match. 参考 test_prefix_caching.py
+    # 前缀匹配 基于 block级别的 hash, 而不是单纯的 str匹配, 因此至少要1个block(16token)相同
+    block_size = 16
+    seqA_tokens = "hello " * (2 * block_size)  # SeqA
+    seqB_tokens = seqA_tokens
+
+    engine.add_request("req_id_1", seqA_tokens, sampling_params)
+    engine.add_request("req_id_2", seqB_tokens, sampling_params)
     print(f"[debug] ================ curr_step_num:1 ============= ")
     os.environ["curr_step_num"] = "1"
     request_outputs = engine.step()
@@ -63,7 +66,7 @@ if __name__ == '__main__':
         f"--gpu_memory_utilization=0.9",
         f"--swap-space=0",  # 禁止 swap到内存上
         # 使用一些特殊数字, 容易观察
-        f"--max-model-len=33",
+        f"--max-model-len=44",
         f"--block-size=16",  # 16的倍数
         f"--max-num-seqs=5",
     ]
