@@ -429,7 +429,7 @@ class Scheduler(SchedulerInterface):
                 if request.status == RequestStatus.WAITING:
                     scheduled_new_reqs.append(request)
                 elif request.status == RequestStatus.PREEMPTED:
-                    scheduled_resumed_reqs.append(request)
+                    scheduled_resumed_reqs.append(request)  # 恢复任务
                 else:
                     raise RuntimeError(f"Invalid request status: {request.status}")
 

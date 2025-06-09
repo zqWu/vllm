@@ -25,7 +25,8 @@ import contextlib
 import os
 import time
 from dataclasses import asdict
-
+# lmcache==0.2.1, 覆盖了 torch版本. 安装之后需要重装 vllm
+# 版本冲突, 无法运行
 from lmcache.experimental.cache_engine import LMCacheEngineBuilder
 from lmcache.integration.vllm.utils import ENGINE_NAME
 
