@@ -28,3 +28,13 @@ True
 ```
 
 
+# 指定 torch版本等
+- 假设已经安装了 torch torchvison torchaudio等
+```
+git clone https://github.com/vllm-project/vllm.git
+cd vllm
+
+python use_existing_torch.py
+pip install -r requirements/build.txt
+pip install --no-build-isolation -e .
+```
