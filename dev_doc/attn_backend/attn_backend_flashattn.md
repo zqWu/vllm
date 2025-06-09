@@ -48,8 +48,7 @@ void reshape_and_cache_flash(
     torch::Tensor& key,        // [num_tokens, num_heads, head_size]
     torch::Tensor& value,      // [num_tokens, num_heads, head_size]
     torch::Tensor& key_cache,  // [num_blocks, block_size, num_heads, head_size]
-    torch::Tensor&
-        value_cache,  // [num_blocks, block_size, num_heads, head_size]
+    torch::Tensor& value_cache,  // [num_blocks, block_size, num_heads, head_size]
     torch::Tensor& slot_mapping,  // [num_tokens] or [num_actual_tokens]
     const std::string& kv_cache_dtype, torch::Tensor& k_scale,
     torch::Tensor& v_scale) {

@@ -68,9 +68,9 @@ def _cached_get_attn_backend(
     kv_cache_dtype: Optional[str],  <====== 从 model.config 得到
     block_size: int,                <====== vllm配置 默认16
     is_attention_free: bool,        <====== 无 attn? 一般 False
-    is_blocksparse: bool = False,   <==block-sparse attention, 一种滑动窗口注意力机制
-    use_v1: bool = False,           <== 默认 true
-    use_mla: bool = False,          <== deepseek的 multi-head latent attn
+    is_blocksparse: bool = False,   <====== block-sparse attention, 一种滑动窗口注意力机制
+    use_v1: bool = False,           <====== 默认 true VLLM_USE_V1
+    use_mla: bool = False,          <====== deepseek的 multi-head latent attn
 ) -> Type[AttentionBackend]:
 
 1. is_blocksparse = True, 返回 BlocksparseFlashAttentionBackend
@@ -78,10 +78,11 @@ def _cached_get_attn_backend(
 
 3. global_forced_backend 全局指定, None
 4. 从指定的环境变量读取
-5. 一般走到这里:
+5. 一般走到这里: 根据平台选择 attn_backend
 current_platform.get_attn_backend_cls(
         selected_backend, head_size, dtype, kv_cache_dtype, block_size, use_v1,
         use_mla)
+        第一个参数 selected_backend 是通过环境变量指定的 cls
 
 Platform
     CpuPlatform

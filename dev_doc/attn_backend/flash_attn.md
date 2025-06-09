@@ -48,8 +48,8 @@ https://www.youtube.com/watch?v=gBMO1JZav44
 - 模型: qwen2.5, token embed dim = 5120
   - 单个token, fp16的情况下
     - qkv 矩阵, shape = 1 * 5120
-    - 数据量 = 1 * 5120 * 2bytes = 10k
-    - 单个token, qkv 一共有 30k
+    - 数据量 = 1 * 5120 * 2bytes = 10k (单个attn层)
+    - 单个token, qkv 一共有 30k (单个attn层)
 
 ## q @ k.T 中间结果 N * N, 其中N= seq_length
 
