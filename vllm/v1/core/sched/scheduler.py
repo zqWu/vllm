@@ -302,10 +302,10 @@ class Scheduler(SchedulerInterface):
 
         # Next, schedule the WAITING requests.
         if not preempted_reqs:
+            logger.info(f"[debug] {self.__class__.__name__} 开始处理 waiting队列")
             while self.waiting and token_budget > 0:
                 if len(self.running) == self.max_num_running_reqs:
                     break
-                logger.info(f"[debug] {self.__class__.__name__} 开始处理 waiting队列")
                 request = self.waiting[0]
                 num_prealloc_computed_tokens = 0
                 # P/D: skip request if still waiting for remote kvs.
@@ -344,7 +344,10 @@ class Scheduler(SchedulerInterface):
 
                 # Get already-cached tokens.
                 if num_prealloc_computed_tokens == 0:
+                    # 此时 self.kv_cache_manager中, 还未记录 req_id: {对应的block}, 因为还未调度过
+                    # 在给新请求分配 block之前, 看看能否有block级别的 prefix cache, 为后续分配 block / token 提供更多信息
                     new_computed_blocks, num_native_computed_tokens = self.kv_cache_manager.get_computed_blocks(request)
+                    logger.info(f"[debug] {request.request_id}, new_computed_blocks={new_computed_blocks}, num_native_computed_tokens={num_native_computed_tokens}")
                 else:
                     # P/D: skip checking prefix cache if loaded from remote kvs.
                     new_computed_blocks = KVCacheBlocks.create_empty()
@@ -371,7 +374,7 @@ class Scheduler(SchedulerInterface):
                     # We use `request.num_tokens` instead of
                     # `request.num_prompt_tokens` to consider the resumed
                     # requests, which have output tokens.
-                    num_new_tokens = request.num_tokens - num_computed_tokens
+                    num_new_tokens = request.num_tokens - num_computed_tokens  # prompt_token - 已经计算过的(如cache命中)
                     if 0 < self.scheduler_config.long_prefill_token_threshold < num_new_tokens:
                         num_new_tokens = self.scheduler_config.long_prefill_token_threshold
                     num_new_tokens = min(num_new_tokens, token_budget)
@@ -385,7 +388,7 @@ class Scheduler(SchedulerInterface):
                             # The request cannot be scheduled.
                             break
 
-                logger.info(f"[debug] Scheduler.schedule() 为request分配 slots")
+                logger.info(f"[debug] Scheduler.schedule() 为request {request.request_id}分配 slots")
                 new_blocks = self.kv_cache_manager.allocate_slots(
                     request,
                     num_new_tokens + num_external_computed_tokens,
@@ -417,8 +420,7 @@ class Scheduler(SchedulerInterface):
                     continue
 
                 if request.use_structured_output:
-                    structured_output_request_ids[
-                        request.request_id] = req_index
+                    structured_output_request_ids[request.request_id] = req_index
                 req_index += 1
                 logger.info(f"[debug] {self.__class__.__name__} running.append(request)")
                 self.running.append(request)
@@ -433,8 +435,8 @@ class Scheduler(SchedulerInterface):
 
                 if self.lora_config and request.lora_request:
                     scheduled_loras.add(request.lora_request.lora_int_id)
-                req_to_new_block_ids[request.request_id] = (
-                    self.kv_cache_manager.get_block_ids(request.request_id))
+                # 这个放 {req_id: [对应的blocks, 已考虑cache]}
+                req_to_new_block_ids[request.request_id] = self.kv_cache_manager.get_block_ids(request.request_id)
                 num_scheduled_tokens[request.request_id] = num_new_tokens
                 token_budget -= num_new_tokens
                 request.status = RequestStatus.RUNNING
@@ -442,8 +444,7 @@ class Scheduler(SchedulerInterface):
                 logger.info(f"[debug] {self.__class__.__name__} 更新 request信息, budget信息")
                 # Encoder-related.
                 if encoder_inputs_to_schedule:
-                    scheduled_encoder_inputs[request.request_id] = (
-                        encoder_inputs_to_schedule)
+                    scheduled_encoder_inputs[request.request_id] = encoder_inputs_to_schedule
                     # Allocate the encoder cache.
                     for i in encoder_inputs_to_schedule:
                         self.encoder_cache_manager.allocate(request, i)
@@ -461,8 +462,7 @@ class Scheduler(SchedulerInterface):
         # Since some requests in the RUNNING queue may not be scheduled in
         # this step, the total number of scheduled requests can be smaller than
         # len(self.running).
-        assert (len(scheduled_new_reqs) + len(scheduled_resumed_reqs) +
-                len(scheduled_running_reqs) <= len(self.running))
+        assert (len(scheduled_new_reqs) + len(scheduled_resumed_reqs) + len(scheduled_running_reqs) <= len(self.running))
 
         # Get the longest common prefix among all requests in the running queue.
         # This can be potentially used for cascade attention.

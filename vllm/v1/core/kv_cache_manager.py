@@ -137,7 +137,8 @@ class KVCacheManager:
         if not block_hashes:
             block_hashes = hash_request_tokens(self.caching_hash_fn, self.block_size, request)
             self.req_to_block_hashes[request.request_id] = block_hashes
-
+            # block_hashes = {req_id: block_hash}, block_hash 不依赖于 block_id, 该request此时可能未分配 block
+            # 计算 hashes 只是为了去检索
         if self.log_stats:
             assert self.prefix_cache_stats is not None
             self.prefix_cache_stats.requests += 1
@@ -152,7 +153,7 @@ class KVCacheManager:
 
         computed_blocks = self.single_type_manager.find_longest_cache_hit(block_hashes, max_cache_hit_length)
         if computed_blocks:
-            logger.info(f"[debug] 命中 block cache, 数量={len(computed_blocks)} ")
+            logger.info(f"[debug] 命中 block cache, 数量={len(computed_blocks)}")
         # NOTE(woosuk): Since incomplete blocks are not eligible for
         # sharing, `num_computed_tokens` is always a multiple of
         # `block_size`.
@@ -169,7 +170,7 @@ class KVCacheManager:
         self,
         request: Request,
         num_new_tokens: int,
-        num_new_computed_tokens: int = 0,
+        num_new_computed_tokens: int = 0,  # 如 prefix match 到了 2个block, 则此值 = 16 * 2 = 32
         new_computed_blocks: Optional[KVCacheBlocks] = None,
         num_lookahead_tokens: int = 0,
         delay_cache_blocks: bool = False,
@@ -211,6 +212,7 @@ class KVCacheManager:
             raise ValueError("num_new_tokens must be greater than 0")
 
         if new_computed_blocks is not None:
+            logger.info(f"[debug] req={request.request_id} 分配block时, 已有 new_computed_block")
             new_computed_block_list = new_computed_blocks.blocks  # [ KVCacheBlock, KVCacheBlock, ...]
         else:
             new_computed_block_list = []
@@ -228,12 +230,11 @@ class KVCacheManager:
         # the new prefix caching hits
         num_computed_tokens = request.num_computed_tokens + num_new_computed_tokens
         num_tokens_need_slot = min(num_computed_tokens + num_new_tokens + num_lookahead_tokens, self.max_model_len)
-        num_blocks_to_allocate = (
-            self.single_type_manager.get_num_blocks_to_allocate(
+        num_blocks_to_allocate = self.single_type_manager.get_num_blocks_to_allocate(
                 request_id=request.request_id,
                 num_tokens=num_tokens_need_slot,
                 new_computed_blocks=new_computed_block_list,
-            ))
+            )
         logger.info(f"[debug] {self.__class__.__name__} 需blocks={num_blocks_to_allocate}个 需slots={num_tokens_need_slot}")
         if num_blocks_to_allocate > self.block_pool.get_num_free_blocks():
             # Cannot allocate new blocks
@@ -241,16 +242,15 @@ class KVCacheManager:
 
         # Touch the computed blocks to make sure they won't be evicted.
         if self.enable_caching:
+            _block_ids = [e.block_id for e in new_computed_block_list]
+            logger.info(f"[debug] {self.__class__.__name__} req={request.request_id}, touch 命中的 block cache {_block_ids}")
             self.block_pool.touch(new_computed_block_list)
         else:
-            assert not new_computed_block_list, (
-                "Computed blocks should be empty when "
-                "prefix caching is disabled")
+            assert not new_computed_block_list, "Computed blocks should be empty when prefix caching is disabled"
 
         # Append the new computed blocks to the request blocks until now to
         # avoid the case where the new blocks cannot be allocated.
-        self.single_type_manager.save_new_computed_blocks(
-            request.request_id, new_computed_block_list)
+        self.single_type_manager.save_new_computed_blocks(request.request_id, new_computed_block_list)
 
         new_blocks = self.single_type_manager.allocate_new_blocks(request.request_id, num_tokens_need_slot)
 

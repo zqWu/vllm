@@ -55,7 +55,7 @@ def main(args: argparse.Namespace):
 
 if __name__ == '__main__':
     desc = """
-主要观察step过程
+观察step过程中的 相同的prefix 缓存复用
 """
     Utils.print_pid_tid()  # PYDEVD_USE_FRAME_EVAL
     mock_cli_str = [

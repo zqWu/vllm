@@ -436,6 +436,9 @@ def hash_request_tokens(hash_function: Any, block_size: int,
     Returns:
         The list of computed hash values.
     """
+    # 计算 request 对应的 block_hash, 但是这里并不真正分配block
+    # 计算过程中只需要 token_ids + 多模态token
+    # block hash 只有 full block才有
     token_ids = request.all_token_ids
 
     req_need_extra_keys = need_extra_keys(request)
