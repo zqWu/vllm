@@ -6,8 +6,8 @@ vllm目前（截至2025年）对Python 3.10支持非常好。
 一些新特性（比如pattern matching）也能用，但又不会因为太新导致第三方库兼容问题（比如3.12有些库可能还没完全适配）。
 
 ```bash
-conda create -n vllm-dev python=3.10 -y
-conda activate vllm-dev
+conda create -n vllm_dev python=3.10 -y
+conda activate vllm_dev
 ```
 
 # 问题2. 源码安装 vllm 需要先配置 cuda和pytorch吗？ 更新: 不需要, 自动安装
