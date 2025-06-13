@@ -34,6 +34,8 @@ from vllm import LLM, SamplingParams
 from vllm.config import KVTransferConfig
 from vllm.engine.arg_utils import EngineArgs
 
+# 测试案例未跑通
+
 
 def setup_environment_variables(vllm_version: str):
     # LMCache-related environment variables
@@ -47,6 +49,11 @@ def setup_environment_variables(vllm_version: str):
     os.environ["LMCACHE_MAX_LOCAL_CPU_SIZE"] = "5.0"
     if vllm_version == "v0":
         os.environ["VLLM_USE_V1"] = "0"
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+    os.environ["VLLM_USE_V1"] = "1"
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0"  # A800
+    os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"  # debug, 单进程更好
 
 
 @contextlib.contextmanager
@@ -62,7 +69,7 @@ def build_llm_with_lmcache(lmcache_connector: str, model: str,
     if vllm_version == "v0":
         llm_args = EngineArgs(
             model=model,
-            kv_transfer_config=ktc,
+            # kv_transfer_config=ktc,
             max_model_len=8000,
             gpu_memory_utilization=0.8,
             enable_chunked_prefill=True,  # Only in v0
@@ -70,12 +77,18 @@ def build_llm_with_lmcache(lmcache_connector: str, model: str,
     else:
         llm_args = EngineArgs(
             model=model,
-            kv_transfer_config=ktc,
-            max_model_len=8000,
-            gpu_memory_utilization=0.8,
+            # kv_transfer_config=ktc,
+            # max_model_len=8000,
+            gpu_memory_utilization=0.9,
+            max_model_len=2048,
+            enforce_eager=True,
         )
 
-    llm = LLM(**asdict(llm_args))
+    # llm = LLM(**asdict(llm_args))
+
+    dict_args = asdict(llm_args)
+    dict_args["kv_transfer_config"] = ktc  # KVTransferConfig obj, not dict
+    llm = LLM(**dict_args)
     try:
         yield llm
     finally:
@@ -84,10 +97,10 @@ def build_llm_with_lmcache(lmcache_connector: str, model: str,
 
 
 def print_output(
-    llm: LLM,
-    prompt: list[str],
-    sampling_params: SamplingParams,
-    req_str: str,
+        llm: LLM,
+        prompt: list[str],
+        sampling_params: SamplingParams,
+        req_str: str,
 ):
     # Should be able to see logs like the following:
     # `LMCache INFO: Storing KV cache for 6006 out of 6006 tokens for request 0`
@@ -104,13 +117,16 @@ def print_output(
 
 
 def parse_args():
+    mock_cli_str = [
+        f"--version=v1",
+    ]
     parser = argparse.ArgumentParser()
     parser.add_argument("-v",
                         "--version",
                         choices=["v0", "v1"],
                         default="v1",
                         help="Specify vLLM version (default: v1)")
-    return parser.parse_args()
+    return parser.parse_args(mock_cli_str)
 
 
 def main():
@@ -121,7 +137,8 @@ def main():
         model = "mistralai/Mistral-7B-Instruct-v0.2"
     else:
         lmcache_connector = "LMCacheConnectorV1"
-        model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+        # model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+        model = "/data/models/opt-125m"
 
     setup_environment_variables(args.version)
 
@@ -129,7 +146,7 @@ def main():
 
         # This example script runs two requests with a shared prefix.
         # Define the shared prompt and specific prompts
-        shared_prompt = "Hello, how are you?" * 1000
+        shared_prompt = "Hello, how are you?" * 10
         first_prompt = [
             shared_prompt + "Hello, my name is",
         ]

@@ -1,0 +1,5 @@
+# debug时的环境变量
+
+# TORCH_COMPILE=0 # 无效, 要配置 --enforce-eager
+
+PYDEVD_USE_FRAME_EVAL=NO
