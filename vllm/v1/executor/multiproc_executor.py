@@ -192,6 +192,7 @@ class MultiprocExecutor(Executor):
                        kwargs: Optional[dict] = None,
                        non_block: bool = False,
                        unique_reply_rank: Optional[int] = None) -> list[Any]:
+        logger.info(f"collective_rpc {method}")
         if self.is_failed:
             raise RuntimeError("Executor failed.")
 

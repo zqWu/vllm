@@ -55,3 +55,12 @@ Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 47.5 tokens/s, R
 在 Running: 1 reqs时, 大概是 8token/s
 1. 显然这个是并行处理,这种并行处理的细节
 2. 对于完成的req, 是等到全部完成后一起返回, 还是完成一个返回一个
+
+- 如何处理 结束、停止的 request
+- MultiProcExecutor, 进程是如何拆分的，通讯机制
+  - EngineCore持有一个MultiProcExecutor实例 
+  - MultiProcExecutor持有多个workers, 这些 workers 运行在其他进程
+
+- v1版中, sampler在哪一层工作
+  - 搜索 Sampler ====> vllm/v1/worker/gpu_model_runner.py/GPUModelRunner
+  - 作用在 GPUModelRunner.execute_model()中, 

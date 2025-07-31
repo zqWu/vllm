@@ -61,7 +61,7 @@ def main():
     engine_core = EngineCore(
         vllm_config=vllm_config,
         log_stats=True,
-        executor_class=MultiprocExecutor
+        executor_class=MultiprocExecutor,  # 指定多进程 Executor
     )
 
     prompt1 = "Write an engaging science fiction story about robots living alongside humans on Earth, exploring their conflicts."  # noqa

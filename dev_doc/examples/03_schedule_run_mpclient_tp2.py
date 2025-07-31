@@ -10,7 +10,7 @@ from vllm.v1.engine.llm_engine import LLMEngine
 
 gpu_id, _, free_mem_percent = Utils.get_single_gpu()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpu_id}"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6,7"
 os.environ["VLLM_USE_V1"] = "1"
 os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0"  # A800
 os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "1"
@@ -66,6 +66,7 @@ if __name__ == '__main__':
         "--block-size=16",  # 16的倍数
         "--max-num-seqs=5",
         "--distributed-executor-backend=mp",  # 使用 mp
+        "--tensor-parallel-size=2",  # tp=2
     ]
     args = parse_args(mock_cli_str)
     main(args)
