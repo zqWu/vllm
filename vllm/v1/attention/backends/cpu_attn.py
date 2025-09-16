@@ -315,10 +315,10 @@ class TorchSDPAMetadata(AttentionMetadata):
 
 class TorchSDPAMetadataBuilderV1(AttentionMetadataBuilder[TorchSDPAMetadata]):
 
-    def __init__(self, kv_cache_spec: AttentionSpec, vllm_config: VllmConfig,
-                 device: torch.device) -> None:
-        self.kv_cache_spec = kv_cache_spec
-        self.vllm_config = vllm_config
+    def __init__(self, kv_cache_spec: AttentionSpec, layer_names: list[str],
+                 vllm_config: VllmConfig, device: torch.device) -> None:
+        super().__init__(kv_cache_spec, layer_names, vllm_config, device)
+
         self.scheduler_config = vllm_config.scheduler_config
 
         # For reorder
@@ -446,17 +446,12 @@ class TorchSDPABackendImpl(AttentionImpl[TorchSDPAMetadata]):
         logits_soft_cap: Optional[float] = None,
         attn_type: str = AttentionType.DECODER,
         kv_sharing_target_layer_name: Optional[str] = None,
-        use_irope: bool = False,
     ) -> None:
         if kv_sharing_target_layer_name is not None:
             raise NotImplementedError("KV sharing is not supported in V0.")
         if logits_soft_cap is not None:
             logger.warning_once("Torch SPDA does not support logits soft cap. "
                                 "Outputs may be slightly off.")
-        if use_irope:
-            logger.warning_once(
-                "Using irope in Torch SPDA is not supported yet, it will fall"
-                " back to global attention for long context.")
         self.paged_attn_impl = _get_paged_attn_impl()
         self.num_heads = num_heads
         self.head_size = head_size
@@ -488,6 +483,7 @@ class TorchSDPABackendImpl(AttentionImpl[TorchSDPAMetadata]):
         attn_metadata: TorchSDPAMetadata,  # type: ignore
         output: Optional[torch.Tensor] = None,
         output_scale: Optional[torch.Tensor] = None,
+        output_block_scale: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass with torch SDPA and PagedAttention.
 
@@ -495,14 +491,15 @@ class TorchSDPABackendImpl(AttentionImpl[TorchSDPAMetadata]):
             query: shape = [num_tokens, num_heads * head_size]
             key: shape = [num_tokens, num_kv_heads * head_size]
             value: shape = [num_tokens, num_kv_heads * head_size]
-            kv_cache = [2, num_blocks, block_size * num_kv_heads * head_size]
+            kv_cache: shape =
+                [2, num_blocks, block_size * num_kv_heads * head_size]
                 NOTE: kv_cache will be an empty tensor with shape [0]
                 for profiling run.
             attn_metadata: Metadata for attention.
         Returns:
             shape = [num_tokens, num_heads * head_size]
         """
-        if output_scale is not None:
+        if output_scale is not None or output_block_scale is not None:
             raise NotImplementedError(
                 "fused output quantization is not yet supported"
                 " for TorchSDPABackendImpl")
@@ -644,10 +641,6 @@ class TorchSDPABackendImpl(AttentionImpl[TorchSDPAMetadata]):
         attn_metadata: TorchSDPAMetadata,
         attn_type: str = AttentionType.DECODER,
     ) -> None:
-        if self.num_kv_heads != self.num_heads:
-            key = key.repeat_interleave(self.num_queries_per_kv, dim=1)
-            value = value.repeat_interleave(self.num_queries_per_kv, dim=1)
-
         attn_masks = attn_metadata.get_attn_bias(attn_type)
         if attn_masks is None:
             if self.alibi_slopes is not None:
@@ -667,6 +660,10 @@ class TorchSDPABackendImpl(AttentionImpl[TorchSDPAMetadata]):
         query = query.movedim(0, query.dim() - 2)
         key = key.movedim(0, key.dim() - 2)
         value = value.movedim(0, value.dim() - 2)
+
+        if self.num_kv_heads != self.num_heads:
+            key = key.repeat_interleave(self.num_queries_per_kv, dim=-3)
+            value = value.repeat_interleave(self.num_queries_per_kv, dim=-3)
 
         causal_attn = (attn_type == AttentionType.DECODER)
 

@@ -5,14 +5,15 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Union
 
 import torch
 import torch.distributed as dist
 
 import vllm.envs as envs
-from vllm.config import ParallelConfig, VllmConfig
+from vllm.config import CUDAGraphMode, ParallelConfig, VllmConfig
 from vllm.logger import init_logger
+from vllm.platforms import current_platform
 
 if TYPE_CHECKING:
     from vllm.attention.backends.abstract import AttentionMetadata
@@ -26,10 +27,47 @@ batchsize_logging_interval: float = envs.VLLM_LOG_BATCHSIZE_INTERVAL
 batchsize_forward_time: defaultdict = defaultdict(list)
 
 
+class BatchDescriptor(NamedTuple):
+    """
+    Batch descriptor for cudagraph dispatching. We should keep the num of
+    items as minimal as possible to properly and uniquely describe the padded
+    batch for cudagraph.
+    """
+    num_tokens: int
+    uniform_decode: bool = False
+    """
+    False can also be used for an uniform decode batch to dispatch to the 
+    cudagraph supporting non-uniform batches.
+    """
+
+    @property
+    def non_uniform(self) -> "BatchDescriptor":
+        """
+        Return a non-uniform version of current batch descriptor.
+        """
+        return BatchDescriptor(self.num_tokens, uniform_decode=False)
+
+
+def _compute_chunked_local_num_tokens(num_tokens_across_dp_cpu: list[int],
+                                      max_num_tokens: int,
+                                      chunk_idx: int) -> list[int]:
+    dp_size = len(num_tokens_across_dp_cpu)
+
+    local_size = [-1] * dp_size
+    for i in range(dp_size):
+        dp_tokens = num_tokens_across_dp_cpu[i]
+        local_size[i] = min(max_num_tokens,
+                            dp_tokens - (max_num_tokens * chunk_idx))
+        if local_size[i] <= 0:
+            local_size[i] = 1  # ensure lockstep even if done
+    return local_size
+
+
 @dataclass
 class DPMetadata:
     max_tokens_across_dp_cpu: torch.Tensor
     cu_tokens_across_dp_cpu: torch.Tensor
+    local_sizes: Optional[list[int]] = None
 
     @staticmethod
     def num_tokens_across_dp(num_tokens: int, dp_size: int,
@@ -38,14 +76,26 @@ class DPMetadata:
         Gather the num_tokens across all DP ranks and return results in a
         CPU tensor of size dp_size.
         """
+        from vllm.distributed.parallel_state import get_dp_group
+        device = current_platform.device_type
+        group = get_dp_group().device_group
+
+        # Transfering this tensor from GPU to CPU will introduce a GPU sync
+        # point that could adversely affect performance of vllm with asynch
+        # scheduling. This environment variable exists to quickly disable
+        # this optimization if we run into this case.
+        if envs.VLLM_DISABLE_NCCL_FOR_DP_SYNCHRONIZATION:
+            logger.info_once(
+                "Using CPU all reduce to syncronize DP padding between ranks.")
+            device = "cpu"
+            group = get_dp_group().cpu_group
         num_tokens_across_dp = [0] * dp_size
         num_tokens_across_dp[dp_rank] = num_tokens
         num_tokens_tensor = torch.tensor(num_tokens_across_dp,
-                                         device="cpu",
+                                         device=device,
                                          dtype=torch.int32)
-        from vllm.distributed.parallel_state import get_dp_group
-        dist.all_reduce(num_tokens_tensor, group=get_dp_group().cpu_group)
-        return num_tokens_tensor
+        dist.all_reduce(num_tokens_tensor, group=group)
+        return num_tokens_tensor.cpu()
 
     @staticmethod
     def make(
@@ -78,6 +128,48 @@ class DPMetadata:
         cu_tokens_across_dp_cpu = torch.cumsum(num_tokens_across_dp, dim=0)
         return DPMetadata(max_tokens_across_dp_cpu, cu_tokens_across_dp_cpu)
 
+    @contextmanager
+    def chunked_sizes(self, max_chunk_size_per_rank: int, chunk_idx: int):
+        """
+        Context manager to compute and temporarily set the per-rank local token
+        sizes for a specific chunk during chunked forward execution.
+
+        This is necessary to ensure each DP (data parallel) rank processes its
+        designated portion of tokens in lockstep with others, even when the
+        token counts are uneven or some ranks have completed their input early.
+
+        For chunked execution, we break up the total tokens on each rank into
+        multiple chunks (of at most `max_chunk_size_per_rank`), and for a given
+        `chunk_idx`, this context manager sets `self.local_sizes` to the number
+        of tokens to process in that chunk on each rank.
+
+        It uses cumulative sizes (`cu_tokens_across_dp_cpu`) to derive the
+        number of tokens per rank, and calls `_compute_chunked_local_num_tokens`
+        to determine the chunk-wise split.
+
+        `self.local_sizes` is only valid inside the context.
+
+        Args:
+            max_chunk_size_per_rank: The max number of tokens each rank is 
+                                     allowed to process in this chunk.
+            chunk_idx: The index of the chunk to compute sizes for.
+        """
+        cu_sizes = self.cu_tokens_across_dp_cpu
+        num_tokens_across_dp_cpu = [
+            (cu_sizes[i] -
+             cu_sizes[i - 1]).item() if i > 0 else cu_sizes[0].item()
+            for i in range(len(cu_sizes))
+        ]
+        self.local_sizes = _compute_chunked_local_num_tokens(
+            num_tokens_across_dp_cpu, max_chunk_size_per_rank, chunk_idx)
+        try:
+            yield self.local_sizes
+        finally:
+            self.local_sizes = None
+
+    def get_chunk_sizes_across_dp_rank(self) -> Optional[list[int]]:
+        return self.local_sizes
+
 
 @dataclass
 class ForwardContext:
@@ -94,7 +186,15 @@ class ForwardContext:
     virtual_engine: int  # set dynamically for each forward pass
     # set dynamically for each forward pass
     dp_metadata: Optional[DPMetadata] = None
-    skip_cuda_graphs: bool = False
+    # determine the cudagraph style at runtime to be FULL, PIECEWISE, or NONE.
+    # by default NONE, no cudagraph is used.
+    cudagraph_runtime_mode: CUDAGraphMode = CUDAGraphMode.NONE
+    batch_descriptor: Optional[BatchDescriptor] = None
+
+    def __post_init__(self):
+        assert self.cudagraph_runtime_mode in [
+            CUDAGraphMode.NONE, CUDAGraphMode.PIECEWISE, CUDAGraphMode.FULL], \
+            f"Invalid cudagraph runtime mode: {self.cudagraph_runtime_mode}"
 
 
 _forward_context: Optional[ForwardContext] = None
@@ -110,13 +210,13 @@ def get_forward_context() -> ForwardContext:
 
 @contextmanager
 def set_forward_context(
-    attn_metadata: Any,
-    vllm_config: VllmConfig,
-    virtual_engine: int = 0,
-    num_tokens: Optional[int] = None,
-    num_tokens_across_dp: Optional[torch.Tensor] = None,
-    skip_cuda_graphs: bool = False,
-):
+        attn_metadata: Any,
+        vllm_config: VllmConfig,
+        virtual_engine: int = 0,
+        num_tokens: Optional[int] = None,
+        num_tokens_across_dp: Optional[torch.Tensor] = None,
+        cudagraph_runtime_mode: CUDAGraphMode = CUDAGraphMode.NONE,
+        batch_descriptor: Optional[BatchDescriptor] = None):
     """A context manager that stores the current forward context,
     can be attention metadata, etc.
     Here we can inject common logic for every model forward pass.
@@ -140,7 +240,8 @@ def set_forward_context(
         virtual_engine=virtual_engine,
         attn_metadata=attn_metadata,
         dp_metadata=dp_metadata,
-        skip_cuda_graphs=skip_cuda_graphs,
+        cudagraph_runtime_mode=cudagraph_runtime_mode,
+        batch_descriptor=batch_descriptor,
     )
 
     try:
