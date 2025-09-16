@@ -23,6 +23,10 @@ python use_existing_torch.py
 
 uv pip install -r requirements/build.txt
 uv pip install -r requirements/common.txt
+uv pip install -r requirements/test.txt # will install another torch
+# install back torch
+uv pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+
 
 # 编译+安装, 耗时, 需要github
 
