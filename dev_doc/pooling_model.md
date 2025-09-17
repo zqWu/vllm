@@ -115,3 +115,9 @@ Text Generation Chat Models  Code    Embedding   Reranker   Reward
                                  Dense vector   Relevance   Scalar
                                 representation   score     reward
 ```
+
+# bge-m3 embedding 模型架构
+- XLM-RoBERTa architecture的一个变种
+```text
+[Text] ──► [Tokenizer] ──► [Transformer Encoder] ──► Hidden states (per token)
+```
